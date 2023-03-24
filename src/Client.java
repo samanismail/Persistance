@@ -1,7 +1,7 @@
 import java.io.*;
 import java.net.*;
 public class Client {
-    static int port = 8080;
+    static int port = 9000;
     static InetAddress ip ;
     static String pseudo;
     static boolean arreter=false;
@@ -9,7 +9,7 @@ public class Client {
     public static void main(String[] args) throws Exception {
         if (args.length!=0){
             ip= InetAddress.getLocalHost();
-            port=8080;
+            port=8090;
             pseudo="Client:"+InetAddress.getLocalHost().getHostName();
         }
         Socket socket = new Socket("10.192.34.181",port);
@@ -20,7 +20,7 @@ public class Client {
 
         PrintWriter sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())),true);
 
-        GererSaisie saisie=new GererSaisie(sisw);
+        GererSaisieClient saisie=new GererSaisieClient(sisw);
         saisie.start();
 
         String str;
@@ -37,11 +37,11 @@ public class Client {
     }
 }
 
-class GererSaisie extends Thread{
+class GererSaisieClient extends Thread{
     private BufferedReader entreeClavier;
     private PrintWriter pw;
 
-    public GererSaisie(PrintWriter pw){
+    public GererSaisieClient(PrintWriter pw){
         entreeClavier = new BufferedReader(new InputStreamReader(System.in));
         this.pw=pw;
     }
@@ -56,5 +56,6 @@ class GererSaisie extends Thread{
             pw.println("END");
         }catch(IOException e){e.printStackTrace();}
         Client.arreter=true;
+        System.exit(0);
     }
 }
