@@ -38,7 +38,7 @@ public class Serveur {
         return nombre;
     }
     public synchronized static void MAJNombre(){
-        nombre=nombre.add(new BigInteger("1000"));
+        nombre=nombre.add(new BigInteger("10000"));
     }
     public static void afficherClients(){
         for(int i=0;i<numClient;i++){
@@ -54,7 +54,7 @@ public class Serveur {
         while(numWorker>0){
             pwWorker[0].println("persistance "+getNombre());
             MAJNombre();
-            Thread.sleep(1000);
+            Thread.sleep(500);
         }
     }
 }
@@ -195,6 +195,7 @@ class EcouterObjets extends Thread{
     }
     public void run(){
         try{
+            System.gc();
             ServerSocket s = new ServerSocket(port);
             while (true) {
                 Socket soc = s.accept();
@@ -209,6 +210,7 @@ class EcouterObjets extends Thread{
                 oos.writeObject(persistanceA);
                 oos.flush();
                 oos.close();
+
             }
         }catch (IOException e) {
             throw new RuntimeException(e);

@@ -126,6 +126,7 @@ class Tache extends Thread {
     }
     public void run() {
         try {
+            System.gc();
             Socket socket = new Socket("10.192.34.181", 10000);
             for (BigInteger i = debut; i.compareTo(fin) <= 0; i = i.add(BigInteger.ONE)) {
                 if (!Worker.persistanceAdditive.containsKey(i)) {
@@ -139,6 +140,7 @@ class Tache extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 }
