@@ -15,7 +15,6 @@ public class Worker {
 
     public static void main(String[] args) throws Exception {
         ip= InetAddress.getLocalHost();
-        port=8000;
         pseudo="Worker:"+InetAddress.getLocalHost().getHostName();
         Socket socket = new Socket("10.192.34.181",port);
         System.out.println("SOCKET = " + socket);
@@ -30,7 +29,8 @@ public class Worker {
             str = sisr.readLine();
 
             if(str.split(" ")[0].equals("persistance")){
-               Tache t = new Tache(new BigInteger("1"),new BigInteger(str.split(" ")[1]));
+                BigInteger debut = new BigInteger(str.split(" ")[1]);
+               Tache t = new Tache(debut,debut.add(new BigInteger("1000")));
                t.start();
             }
             else
@@ -117,8 +117,8 @@ class GererSaisieWorker extends Thread{
 }
 
 class Tache extends Thread {
-    private BigInteger debut;
-    private BigInteger fin;
+    private final BigInteger debut;
+    private final BigInteger fin;
 
     Tache(BigInteger debut, BigInteger fin) {
         this.debut = debut;
@@ -130,11 +130,9 @@ class Tache extends Thread {
             for (BigInteger i = debut; i.compareTo(fin) <= 0; i = i.add(BigInteger.ONE)) {
                 if (!Worker.persistanceAdditive.containsKey(i)) {
                     Worker.persistanceAdditive.put(i, Worker.persistanceAdditive(i));
-                    System.out.println(i + " = " + Worker.persistanceAdditive(i));
                 }
                 if (!Worker.persistanceMultiplicative.containsKey(i)) {
                     Worker.persistanceMultiplicative.put(i, Worker.persistanceMultiplicative(i));
-                    System.out.println(i + " = " + Worker.persistanceMultiplicative(i));
                 }
             }
             Worker.envoyerPersistances(debut,fin,socket);

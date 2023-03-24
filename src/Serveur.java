@@ -19,20 +19,26 @@ public class Serveur {
 
 
     public static void main(String[] args) {
-        pwClient=new PrintWriter[maxClients];
-        pwWorker=new PrintWriter[maxWorkers];
-        pseudoClient=new String[maxClients];
-        pseudoWorker=new String[maxWorkers];
-        ipClient=new String[maxClients];
-        ipWorker=new String[maxWorkers];
-        nombre=new BigInteger("1");
+        pwClient = new PrintWriter[maxClients];
+        pwWorker = new PrintWriter[maxWorkers];
+        pseudoClient = new String[maxClients];
+        pseudoWorker = new String[maxWorkers];
+        ipClient = new String[maxClients];
+        ipWorker = new String[maxWorkers];
+        nombre = new BigInteger("0");
 
-        ConnexionClient cc=new ConnexionClient();
-        ConnexionWorker cw=new ConnexionWorker();
+        ConnexionClient cc = new ConnexionClient();
+        ConnexionWorker cw = new ConnexionWorker();
         cw.start();
         cc.start();
 
 
+    }
+    public synchronized static BigInteger getNombre(){
+        return nombre;
+    }
+    public synchronized static void MAJNombre(){
+        nombre=nombre.add(new BigInteger("1000"));
     }
     public static void afficherClients(){
         for(int i=0;i<numClient;i++){
@@ -44,13 +50,11 @@ public class Serveur {
             System.out.println("Worker "+i+" : "+Serveur.pseudoWorker[i]+" "+Serveur.ipWorker[i]);
         }
     }
-    public static void LancerWorkerCalculPersistance(){
-        for(int i=0;i<=numWorker;i++){
-            if(pwWorker[i]!=null){
-                pwWorker[i].println("persistance 777");
-                nombre=nombre.add(BigInteger.ONE);
-                break;
-            }
+    public static void LancerWorkerCalculPersistance() throws InterruptedException {
+        while(numWorker>0){
+            pwWorker[0].println("persistance "+getNombre());
+            MAJNombre();
+            Thread.sleep(1000);
         }
     }
 }
@@ -128,6 +132,7 @@ class ConnexionWorker extends Thread{
                 EcouterObjets ecouterObjets=new EcouterObjets(soc);
                 ecouterObjets.start();
                 Serveur.numWorker++;
+                Serveur.LancerWorkerCalculPersistance();
                 String str = sisr.readLine();
                 if (str.equals("END")){
                     Serveur.numWorker--;
@@ -144,7 +149,9 @@ class ConnexionWorker extends Thread{
             sisr.close();
             sisw.close();
             s.close();
-        }catch(IOException e){e.printStackTrace();}
+        }catch(IOException e){e.printStackTrace();} catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 class GererSaisieServeur extends Thread{
@@ -190,14 +197,16 @@ class EcouterObjets extends Thread{
         try{
             ServerSocket s = new ServerSocket(port);
             while (true) {
-                System.out.println("En attente d'objets Worker...");
                 Socket soc = s.accept();
-                //créer un fichier sur le Desktop et mettre la Hachtable rçue dedans
                 ObjectInputStream ois = new ObjectInputStream(soc.getInputStream());
                 Hachtable h = (Hachtable) ois.readObject();
-                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("C:\\Users\\mymar\\Desktop\\"+h.getDebut()+"-"+h.getFin()+".txt"));
-                File f = new File("C:\\Users\\mymar\\Desktop\\test.txt");
-                oos.writeObject(h);
+                Hashtable<BigInteger, Integer>  persistanceA = h.getPersistanceA();
+                Hashtable<BigInteger, Integer>  persistanceM = h.getPersistanceM();
+
+                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Multiplicative\\"+h.getDebut()+"-"+h.getFin()+".txt"));
+                oos.writeObject(persistanceM);
+                oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\"+h.getDebut()+"-"+h.getFin()+".txt"));
+                oos.writeObject(persistanceA);
                 oos.flush();
                 oos.close();
             }
