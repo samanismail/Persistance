@@ -23,14 +23,16 @@ public class Worker {
             str = sisr.readLine();
             if(str.split(" ")[0].equals("persistance")) {
                 BigInteger debut = new BigInteger(str.split(" ")[1]);
-                System.out.println("Début : " + debut);
+                System.out.println("debut = " + debut + " fin = " + debut.add(new BigInteger("10000")));
                 for (BigInteger i = debut; i.compareTo(debut.add(new BigInteger("10000"))) < 0; i = i.add(BigInteger.ONE)) {
                     Tache t = new Tache(i);
                     t.start();
                 }
                 envoyerPersistances(debut, debut.add(new BigInteger("10000")));
+                //vider les hashmaps
+                persistanceAdditive.clear();
+                persistanceMultiplicative.clear();
 
-                System.gc();
             }
 
 

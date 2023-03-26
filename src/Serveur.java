@@ -122,16 +122,18 @@ class ConnexionClient extends Thread{
                 }
                 else if(str.equals("salut")){
 
-                    FileInputStream fileIn = new FileInputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\20000-30000.ser");
+                    FileInputStream fileIn = new FileInputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\80000-90000.ser");
                     ObjectInputStream in = new ObjectInputStream(fileIn);
                     Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
                     in.close();
                     fileIn.close();
                     System.out.println("Deserialized Hashtable.");
-                    //afficher toutes les valeurs de la hachtable
+                    //afficher toutes les valeurs de la table de hachage de manière croissante
                     for (BigInteger key : h.keySet()) {
-                        System.out.println("key: " + key + " value: " + h.get(key));
+                        System.out.println("Key: " + key + " Value: " + h.get(key));
                     }
+
+
 
                 }
                 else{
@@ -245,9 +247,6 @@ class EcouterObjets extends Thread{
                 this.oos.writeObject(persistanceA);
                 this.oos.flush();
                 this.oos.close();
-                System.gc();
-
-
             }
         }catch (IOException | ClassNotFoundException | InterruptedException e) {throw new RuntimeException(e);}
     }
