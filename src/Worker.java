@@ -4,50 +4,51 @@ import java.net.*;
 import java.util.Hashtable;
 
 public class Worker {
-    static int port = 8000;
-    static InetAddress ip ;
-    static String pseudo;
-    static boolean arreter=false;
+    static boolean arreter;
     static Hashtable<BigInteger, Integer> persistanceAdditive = new Hashtable<>();
     static Hashtable<BigInteger, Integer> persistanceMultiplicative = new Hashtable<>();
     static BufferedReader sisr;
     static PrintWriter sisw;
 
     public static void main(String[] args) throws Exception {
-        ip= InetAddress.getLocalHost();
-        pseudo="Worker:"+InetAddress.getLocalHost().getHostName();
-        Socket socket = new Socket("10.192.34.181",port);
+        arreter=false;
+        Socket socket = new Socket("10.192.34.181",8000);
         System.out.println("SOCKET = " + socket);
         Worker.sisr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         Worker.sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())),true);
-
         GererSaisieWorker saisie=new GererSaisieWorker(sisw);
         saisie.start();
-
         String str;
         while(!arreter) {
             str = sisr.readLine();
-
-            if(str.split(" ")[0].equals("persistance")){
+            if(str.split(" ")[0].equals("persistance")) {
                 BigInteger debut = new BigInteger(str.split(" ")[1]);
-               Tache t = new Tache(debut,debut.add(new BigInteger("1000")));
-               t.start();
+                System.out.println("Début : " + debut);
+                for (BigInteger i = debut; i.compareTo(debut.add(new BigInteger("10000"))) < 0; i = i.add(BigInteger.ONE)) {
+                    Tache t = new Tache(i);
+                    t.start();
+                }
+                envoyerPersistances(debut, debut.add(new BigInteger("10000")));
+
+                System.gc();
             }
-            else
-                System.out.println("Serveur=>"+str);
+
+
         }
-        System.out.println("END");
         sisr.close();
         sisw.close();
         socket.close();
     }
 
-    public static void envoyerPersistances(BigInteger debut, BigInteger fin,Socket socket){
-        Hachtable hm = new Hachtable(debut, fin,persistanceAdditive,persistanceMultiplicative);
+    public static void envoyerPersistances(BigInteger debut, BigInteger fin) {
         try {
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            Socket socketObjets= new Socket("10.192.34.181", 10000);
+            Hachtable hm = new Hachtable(debut, fin,persistanceAdditive,persistanceMultiplicative);
+            ObjectOutputStream oos = new ObjectOutputStream(socketObjets.getOutputStream());
             oos.writeObject(hm);
             oos.flush();
+            oos.close();
+            socketObjets.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -105,42 +106,26 @@ class GererSaisieWorker extends Thread{
     public void run(){
         String str;
         try{
-            while(!(str=entreeClavier.readLine()).equals("END")){
+            while(!(str = entreeClavier.readLine()).equals("END") && !Worker.arreter){
                 pw.println(str);
             }
-            //si on tape END
+            Worker.arreter=true;
             pw.println("END");
+            System.exit(0);
         }catch(IOException e){e.printStackTrace();}
-        Worker.arreter=true;
-        System.exit(0);
+
     }
 }
 
 class Tache extends Thread {
-    private final BigInteger debut;
-    private final BigInteger fin;
+    private final BigInteger nombre;
 
-    Tache(BigInteger debut, BigInteger fin) {
-        this.debut = debut;
-        this.fin = fin;
+    Tache(BigInteger nombre) {
+        this.nombre = nombre;
     }
     public void run() {
-        try {
-            System.gc();
-            Socket socket = new Socket("10.192.34.181", 10000);
-            for (BigInteger i = debut; i.compareTo(fin) <= 0; i = i.add(BigInteger.ONE)) {
-                if (!Worker.persistanceAdditive.containsKey(i)) {
-                    Worker.persistanceAdditive.put(i, Worker.persistanceAdditive(i));
-                }
-                if (!Worker.persistanceMultiplicative.containsKey(i)) {
-                    Worker.persistanceMultiplicative.put(i, Worker.persistanceMultiplicative(i));
-                }
-            }
-            Worker.envoyerPersistances(debut,fin,socket);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        Worker.persistanceAdditive.put(nombre, Worker.persistanceAdditive(nombre));
+        Worker.persistanceMultiplicative.put(nombre, Worker.persistanceMultiplicative(nombre));
     }
 
 }

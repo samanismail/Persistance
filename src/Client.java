@@ -2,20 +2,11 @@ import java.io.*;
 import java.net.*;
 public class Client {
     static int port = 9000;
-    static InetAddress ip ;
-    static String pseudo;
     static boolean arreter=false;
 
     public static void main(String[] args) throws Exception {
-        if (args.length!=0){
-            ip= InetAddress.getLocalHost();
-            port=8090;
-            pseudo="Client:"+InetAddress.getLocalHost().getHostName();
-        }
-        Socket socket = new Socket("10.192.34.181",port);
+        Socket socket = new Socket("10.192.34.181",9000);
         System.out.println("SOCKET = " + socket);
-
-
         BufferedReader sisr = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
         PrintWriter sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())),true);

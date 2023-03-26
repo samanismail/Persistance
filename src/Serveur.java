@@ -7,175 +7,206 @@ public class Serveur {
     static final int maxClients=10;
     static int numClient=0;
     static PrintWriter[] pwClient;
-    static String[] pseudoClient;
     static String[] ipClient;
 
     static int maxWorkers=10;
     static int numWorker=0;
     static PrintWriter[] pwWorker;
-    static String[] pseudoWorker;
     static String[] ipWorker;
     static BigInteger nombre;
+    static boolean[] WorkersDisponibles;
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, InterruptedException {
         pwClient = new PrintWriter[maxClients];
         pwWorker = new PrintWriter[maxWorkers];
-        pseudoClient = new String[maxClients];
-        pseudoWorker = new String[maxWorkers];
         ipClient = new String[maxClients];
         ipWorker = new String[maxWorkers];
+        WorkersDisponibles = new boolean[maxWorkers];
+        for(int i=0;i<maxWorkers;i++){
+            WorkersDisponibles[i]=false;
+        }
         nombre = new BigInteger("0");
-
-        ConnexionClient cc = new ConnexionClient();
-        ConnexionWorker cw = new ConnexionWorker();
-        cw.start();
-        cc.start();
-
-
+        EcouterObjets newEcouterObjets = new EcouterObjets();
+        newEcouterObjets.start();
+        ServerSocketHandler s1 = new ServerSocketHandler(8000, "worker");
+        ServerSocketHandler s2 = new ServerSocketHandler(9000, "client");
+        s1.start();
+        s2.start();
+        GererSaisieServeur saisie = new GererSaisieServeur();
+        saisie.start();
     }
-    public synchronized static BigInteger getNombre(){
+
+ 
+    public static BigInteger getNombre(){
         return nombre;
     }
-    public synchronized static void MAJNombre(){
+    public static void MAJNombre(){
         nombre=nombre.add(new BigInteger("10000"));
     }
-    public static void afficherClients(){
-        for(int i=0;i<numClient;i++){
-            System.out.println("Client "+i+" : "+Serveur.pseudoClient[i]+" "+Serveur.ipClient[i]);
-        }
-    }
-    public static void afficherWorkers(){
-        for(int i=0;i<numClient;i++){
-            System.out.println("Worker "+i+" : "+Serveur.pseudoWorker[i]+" "+Serveur.ipWorker[i]);
-        }
-    }
-    public static void LancerWorkerCalculPersistance() throws InterruptedException {
-        while(numWorker>0){
-            pwWorker[0].println("persistance "+getNombre());
-            MAJNombre();
-            Thread.sleep(500);
+    public static synchronized void LancerWorkerCalculPersistance() throws InterruptedException {
+        for(int i=0;i<maxWorkers;i++){
+            if(WorkersDisponibles[i]){
+                pwWorker[i].println("persistance "+getNombre());
+                MAJNombre();
+                WorkersDisponibles[i]=false;
+            }
         }
     }
 }
 
-class ConnexionClient extends Thread{
-    private BufferedReader sisr;
-    private PrintWriter sisw;
-    static int port = 9000;
+class ServerSocketHandler extends Thread{
+    int port;
+    private String type;
+    private ServerSocket serverSocket;
 
-    public ConnexionClient(){
+
+    public ServerSocketHandler(int port,String type) {
+        try{
+            this.port = port;
+            this.type = type;
+            this.serverSocket = new ServerSocket(port);
+            System.out.println("Serveur en ligne, socket d'ecoute cree => "+serverSocket);
+        }catch(IOException e){e.printStackTrace();}
     }
     public void run(){
         try{
-            ServerSocket s = new ServerSocket(port);
-            while (Serveur.numClient<Serveur.maxClients){
-                if(Serveur.numClient==0){
-                    System.out.println("En attente de connexions Client...");
+            while(Serveur.numClient < Serveur.maxClients && Serveur.numWorker < Serveur.maxWorkers){
+
+                Socket soc = serverSocket.accept();
+                if(this.type.equals("client")){
+                    ConnexionClient cc = new ConnexionClient(soc);
+                    System.out.println("Nouvelle connexion client - SOCKET => "+soc);
+                    cc.start();
                 }
-                Socket soc = s.accept();
-                sisr = new BufferedReader(new InputStreamReader(soc.getInputStream()));
-                sisw = new PrintWriter( new BufferedWriter(new OutputStreamWriter(soc.getOutputStream())),true);
-                Serveur.pwClient[Serveur.numClient]=sisw;
-                Serveur.pseudoClient[Serveur.numClient]=soc.getInetAddress().getHostName();
-                Serveur.ipClient[Serveur.numClient]=soc.getInetAddress().getHostAddress();
-                GererSaisieServeur saisie=new GererSaisieServeur(sisw);
-                saisie.start();
-                String pseudo = soc.getInetAddress().getHostName();
-                System.out.println("Nouveau client => Pseudo: "+soc.getInetAddress().getHostName()+" IP :"+soc.getInetAddress().getHostAddress());
-                Serveur.numClient++;
-                String str = sisr.readLine();          		// lecture du message
-                if (str.equals("END")){
-                    Serveur.numClient--;
-                    Serveur.pwClient[Serveur.numClient]=null;
-                    Serveur.pseudoClient[Serveur.numClient]=null;
-                    Serveur.ipClient[Serveur.numClient]=null;
-                    System.out.println("Client "+ pseudo +" déconnecté");
-                }
-                else{
-                    System.out.println(pseudo +"=>"+str);
+                if(this.type.equals("worker")){
+                    ConnexionWorker cw = new ConnexionWorker(soc);
+                    System.out.println("Nouvelle connexion worker - SOCKET => "+soc);
+                    cw.start();
                 }
 
             }
-            sisr.close();
-            sisw.close();
-            s.close();
         }catch(IOException e){e.printStackTrace();}
     }
 }
-class ConnexionWorker extends Thread{
+class ConnexionClient extends Thread{
     private BufferedReader sisr;
     private PrintWriter sisw;
-    static int port = 8000;
+    private  Socket soc;
 
-    public ConnexionWorker(){
+    public ConnexionClient(Socket s){
+        try{
+            this.soc = s;
+            sisr = new BufferedReader(new InputStreamReader(soc.getInputStream()));
+            sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(soc.getOutputStream())),true);
+            Serveur.pwClient[Serveur.numClient]=sisw;
+            Serveur.ipClient[Serveur.numClient]=soc.getInetAddress().toString();
+            System.out.println("Client "+ Serveur.ipClient[Serveur.numClient] +" connecté");
+            Serveur.numClient++;
+        }catch(IOException e){e.printStackTrace();}
     }
     public void run(){
         try{
-            ServerSocket s = new ServerSocket(port);
-            while (Serveur.numWorker<Serveur.maxWorkers){
-                if(Serveur.numWorker==0){
-                    System.out.println("En attente de connexions Worker...");
+            while(Serveur.numClient < Serveur.maxClients){
+                String str;
+                if((str=sisr.readLine()).equals("END")){
+                    //retrait du client de la liste en fonction de son adresse IP
+                    for(int i=0;i<Serveur.numClient;i++){
+                        if(Serveur.ipClient[i].equals(soc.getInetAddress().getHostAddress())){
+                            Serveur.pwClient[i]=null;
+                            Serveur.ipClient[i]=null;
+                            Serveur.numClient--;
+                            System.out.println("Client "+soc.getInetAddress()+" déconnecté");
+                        }
+                    }
                 }
-                Socket soc = s.accept();
-                sisr = new BufferedReader(new InputStreamReader(soc.getInputStream()));
-                sisw = new PrintWriter( new BufferedWriter(new OutputStreamWriter(soc.getOutputStream())),true);
+                else if(str.equals("salut")){
 
-                Serveur.pwWorker[Serveur.numWorker]=sisw;
-                Serveur.pseudoWorker[Serveur.numWorker]=soc.getInetAddress().getHostName();
-                Serveur.ipWorker[Serveur.numWorker]=soc.getInetAddress().getHostAddress();
-                GererSaisieServeur saisie=new GererSaisieServeur(sisw);
-                saisie.start();
+                    FileInputStream fileIn = new FileInputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\20000-30000.ser");
+                    ObjectInputStream in = new ObjectInputStream(fileIn);
+                    Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
+                    in.close();
+                    fileIn.close();
+                    System.out.println("Deserialized Hashtable.");
+                    //afficher toutes les valeurs de la hachtable
+                    for (BigInteger key : h.keySet()) {
+                        System.out.println("key: " + key + " value: " + h.get(key));
+                    }
 
-                String pseudo = soc.getInetAddress().getHostName();
-                System.out.println("Nouveau Worker => Pseudo: "+soc.getInetAddress().getHostName()+" IP :"+soc.getInetAddress().getHostAddress());
-                EcouterObjets ecouterObjets=new EcouterObjets(soc);
-                ecouterObjets.start();
-                Serveur.numWorker++;
-                Serveur.LancerWorkerCalculPersistance();
-                String str = sisr.readLine();
-                if (str.equals("END")){
-                    Serveur.numWorker--;
-                    Serveur.pwWorker[Serveur.numWorker]=null;
-                    Serveur.pseudoWorker[Serveur.numWorker]=null;
-                    Serveur.ipWorker[Serveur.numWorker]=null;
-                    System.out.println("Worker "+ pseudo +" déconnecté");
                 }
                 else{
-                    System.out.println(pseudo +"=>"+str);
+                    System.out.println("Client "+soc.getInetAddress()+" : "+str);
                 }
-
             }
-            sisr.close();
-            sisw.close();
-            s.close();
-        }catch(IOException e){e.printStackTrace();} catch (InterruptedException e) {
+        }catch(IOException e){e.printStackTrace();} catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+}
+class ConnexionWorker extends Thread{
+    private final BufferedReader sisr;
+    private final Socket s;
+
+    public ConnexionWorker(Socket s) throws IOException {
+        this.s=s;
+        sisr = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        PrintWriter sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(s.getOutputStream())), true);
+        Serveur.pwWorker[Serveur.numWorker]= sisw;
+        Serveur.ipWorker[Serveur.numWorker]=s.getInetAddress().getHostAddress();
+        Serveur.WorkersDisponibles[Serveur.numWorker]=true;
+        Serveur.numWorker++;
+    }
+    public void run() {
+
+        try {
+            while (Serveur.numWorker < Serveur.maxWorkers) {
+                Serveur.LancerWorkerCalculPersistance();
+                String str;
+                if ((str = sisr.readLine()).equals("END")) {
+                    //retrait du worker de la liste en fonction de son adresse IP
+                    for (int i = 0; i < Serveur.numWorker; i++) {
+                        if (Serveur.ipWorker[i].equals(s.getInetAddress().getHostAddress())) {
+                            Serveur.pwWorker[i] = null;
+                            Serveur.ipWorker[i] = null;
+                            Serveur.WorkersDisponibles[i] = false;
+                            Serveur.numWorker--;
+                            System.out.println("Worker " + s.getInetAddress() + " déconnecté");
+                        }
+                    }
+                }
+            }
+        }catch (IOException | InterruptedException e) {
+                e.printStackTrace();}
     }
 }
 class GererSaisieServeur extends Thread{
     private final BufferedReader entreeClavier;
     private final PrintWriter pw;
 
-    public GererSaisieServeur(PrintWriter pw){
+    public GererSaisieServeur(){
         entreeClavier = new BufferedReader(new InputStreamReader(System.in));
-        this.pw=pw;
+        pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)),true);
     }
 
     public void run(){
         String str;
         try{
             while(!(str=entreeClavier.readLine()).equals("END")){
-                if(str.equals("clients")){
-                    Serveur.afficherClients();
-                }
-                if(str.equals("workers")){
-                    Serveur.afficherWorkers();
-                }
-                else{
-                    pw.println(str);
-                }
+               if(str.equals("workers")){
+                   for(int i=0;i<Serveur.numWorker;i++){
+                       System.out.println("Worker "+i+" : "+Serveur.ipWorker[i]);
+                   }
+               }
+               else if(str.equals("clients")){
+                   for(int i=0;i<Serveur.numClient;i++){
+                       System.out.println("Client "+i+" : "+Serveur.ipClient[i]);
+                   }
+               }
+               else{
+                     System.out.println(str);
+               }
+
+
             }
             //si on tape END
             pw.println("END");
@@ -183,39 +214,41 @@ class GererSaisieServeur extends Thread{
         Client.arreter=true;
     }
 }
-//ecouter objets avec ObjectOutputStream
 class EcouterObjets extends Thread{
-    private final Socket soc;
-    private final String pseudo;
-    static int port = 10000;
 
-    public EcouterObjets(Socket soc){
-        this.soc=soc;
-        this.pseudo=soc.getInetAddress().getHostName();
+    ObjectOutputStream oos;
+    private final ServerSocket s;
+
+
+    public EcouterObjets() throws IOException {
+        s = new ServerSocket(10000);
     }
     public void run(){
-        try{
-            System.gc();
-            ServerSocket s = new ServerSocket(port);
-            while (true) {
+        try {
+
+            while(true){
                 Socket soc = s.accept();
                 ObjectInputStream ois = new ObjectInputStream(soc.getInputStream());
                 Hachtable h = (Hachtable) ois.readObject();
-                Hashtable<BigInteger, Integer>  persistanceA = h.getPersistanceA();
-                Hashtable<BigInteger, Integer>  persistanceM = h.getPersistanceM();
+                for(int i=0;i<Serveur.numWorker;i++){
+                    if(Serveur.ipWorker[i].equals(soc.getInetAddress().getHostAddress())){
+                        Serveur.WorkersDisponibles[i]=true;
+                    }
+                }
+                Serveur.LancerWorkerCalculPersistance();
+                Hashtable<BigInteger, Integer> persistanceA = h.getPersistanceA();
+                Hashtable<BigInteger, Integer> persistanceM = h.getPersistanceM();
 
-                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Multiplicative\\"+h.getDebut()+"-"+h.getFin()+".txt"));
-                oos.writeObject(persistanceM);
-                oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\"+h.getDebut()+"-"+h.getFin()+".txt"));
-                oos.writeObject(persistanceA);
-                oos.flush();
-                oos.close();
+                this.oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Multiplicative\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
+                this.oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
+                this.oos.writeObject(persistanceM);
+                this.oos.writeObject(persistanceA);
+                this.oos.flush();
+                this.oos.close();
+                System.gc();
+
 
             }
-        }catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        }catch (IOException | ClassNotFoundException | InterruptedException e) {throw new RuntimeException(e);}
     }
 }
