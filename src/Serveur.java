@@ -2,30 +2,30 @@ import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
 import java.util.Hashtable;
+import java.util.Objects;
 
 public class Serveur {
-    static final int maxClients=10;
+    static final int maxClients=5;
     static int numClient=0;
     static PrintWriter[] pwClient;
     static String[] ipClient;
 
-    static int maxWorkers=10;
+    static int maxWorkers=5;
     static int numWorker=0;
     static PrintWriter[] pwWorker;
     static String[] ipWorker;
     static BigInteger nombre;
     static boolean[] WorkersDisponibles;
+    static boolean arreter;
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
+        arreter=false;
         pwClient = new PrintWriter[maxClients];
         pwWorker = new PrintWriter[maxWorkers];
         ipClient = new String[maxClients];
         ipWorker = new String[maxWorkers];
         WorkersDisponibles = new boolean[maxWorkers];
-        for(int i=0;i<maxWorkers;i++){
-            WorkersDisponibles[i]=false;
-        }
         nombre = new BigInteger("0");
         EcouterObjets newEcouterObjets = new EcouterObjets();
         newEcouterObjets.start();
@@ -35,6 +35,21 @@ public class Serveur {
         s2.start();
         GererSaisieServeur saisie = new GererSaisieServeur();
         saisie.start();
+        System.out.println("Serveur en ligne");
+        while(!arreter){
+            LancerWorkerCalculPersistance();
+        }
+        for(int i=0;i<Serveur.maxWorkers;i++){
+            if(Serveur.pwWorker[i]!=null)
+                Serveur.pwWorker[i].println("END");
+        }
+        for(int i=0;i<Serveur.maxClients;i++){
+            if(Serveur.pwClient[i]!=null)
+                Serveur.pwClient[i].println("END");
+        }
+        Thread.sleep(1000);
+        System.exit(0);
+
     }
 
  
@@ -48,8 +63,8 @@ public class Serveur {
         for(int i=0;i<maxWorkers;i++){
             if(WorkersDisponibles[i]){
                 pwWorker[i].println("persistance "+getNombre());
-                MAJNombre();
                 WorkersDisponibles[i]=false;
+                MAJNombre();
             }
         }
     }
@@ -66,7 +81,6 @@ class ServerSocketHandler extends Thread{
             this.port = port;
             this.type = type;
             this.serverSocket = new ServerSocket(port);
-            System.out.println("Serveur en ligne, socket d'ecoute cree => "+serverSocket);
         }catch(IOException e){e.printStackTrace();}
     }
     public void run(){
@@ -76,12 +90,10 @@ class ServerSocketHandler extends Thread{
                 Socket soc = serverSocket.accept();
                 if(this.type.equals("client")){
                     ConnexionClient cc = new ConnexionClient(soc);
-                    System.out.println("Nouvelle connexion client - SOCKET => "+soc);
                     cc.start();
                 }
                 if(this.type.equals("worker")){
                     ConnexionWorker cw = new ConnexionWorker(soc);
-                    System.out.println("Nouvelle connexion worker - SOCKET => "+soc);
                     cw.start();
                 }
 
@@ -111,7 +123,7 @@ class ConnexionClient extends Thread{
                 String str;
                 if((str=sisr.readLine()).equals("END")){
                     //retrait du client de la liste en fonction de son adresse IP
-                    for(int i=0;i<Serveur.numClient;i++){
+                    for(int i=0;i<Serveur.maxClients;i++){
                         if(Serveur.ipClient[i].equals(soc.getInetAddress().getHostAddress())){
                             Serveur.pwClient[i]=null;
                             Serveur.ipClient[i]=null;
@@ -122,7 +134,7 @@ class ConnexionClient extends Thread{
                 }
                 else if(str.equals("salut")){
 
-                    FileInputStream fileIn = new FileInputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\80000-90000.ser");
+                    FileInputStream fileIn = new FileInputStream("D:\\L2_S4\\Info4B\\Persistance\\Additive\\80000-90000.ser");
                     ObjectInputStream in = new ObjectInputStream(fileIn);
                     Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
                     in.close();
@@ -153,31 +165,38 @@ class ConnexionWorker extends Thread{
         this.s=s;
         sisr = new BufferedReader(new InputStreamReader(s.getInputStream()));
         PrintWriter sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(s.getOutputStream())), true);
-        Serveur.pwWorker[Serveur.numWorker]= sisw;
-        Serveur.ipWorker[Serveur.numWorker]=s.getInetAddress().getHostAddress();
-        Serveur.WorkersDisponibles[Serveur.numWorker]=true;
-        Serveur.numWorker++;
+        //on ajoute le worker à un emplacement libre dans la liste
+        for(int i=0;i<Serveur.maxWorkers;i++){
+            if(Serveur.pwWorker[i]==null){
+                Serveur.pwWorker[i]=sisw;
+                Serveur.ipWorker[i]=s.getInetAddress().toString();
+                Serveur.WorkersDisponibles[i]=true;
+                System.out.println("Worker "+ Serveur.ipWorker[i] +" connecté");
+                Serveur.numWorker++;
+                break;
+            }
+        }
     }
     public void run() {
 
         try {
             while (Serveur.numWorker < Serveur.maxWorkers) {
-                Serveur.LancerWorkerCalculPersistance();
-                String str;
-                if ((str = sisr.readLine()).equals("END")) {
+                String str=sisr.readLine();
+                if (str!= null && str.equals("END")){
                     //retrait du worker de la liste en fonction de son adresse IP
-                    for (int i = 0; i < Serveur.numWorker; i++) {
-                        if (Serveur.ipWorker[i].equals(s.getInetAddress().getHostAddress())) {
-                            Serveur.pwWorker[i] = null;
-                            Serveur.ipWorker[i] = null;
-                            Serveur.WorkersDisponibles[i] = false;
+                    for(int i=0;i<Serveur.maxWorkers;i++){
+                        if(Objects.equals(Serveur.ipWorker[i], s.getInetAddress().toString())){
+                            Serveur.pwWorker[i]=null;
+                            Serveur.ipWorker[i]=null;
+                            Serveur.WorkersDisponibles[i]=false;
                             Serveur.numWorker--;
-                            System.out.println("Worker " + s.getInetAddress() + " déconnecté");
+                            System.out.println("Worker "+s.getInetAddress()+" déconnecté");
+                            System.out.println("Nombre de workers connectés : "+Serveur.numWorker);
                         }
                     }
                 }
             }
-        }catch (IOException | InterruptedException e) {
+        }catch (IOException e) {
                 e.printStackTrace();}
     }
 }
@@ -193,27 +212,37 @@ class GererSaisieServeur extends Thread{
     public void run(){
         String str;
         try{
-            while(!(str=entreeClavier.readLine()).equals("END")){
+            while(!Serveur.arreter){
+                str = entreeClavier.readLine();
                if(str.equals("workers")){
-                   for(int i=0;i<Serveur.numWorker;i++){
+                   for(int i=0;i<Serveur.maxWorkers;i++){
                        System.out.println("Worker "+i+" : "+Serveur.ipWorker[i]);
                    }
                }
                else if(str.equals("clients")){
-                   for(int i=0;i<Serveur.numClient;i++){
+                   for(int i=0;i<Serveur.maxClients;i++){
                        System.out.println("Client "+i+" : "+Serveur.ipClient[i]);
                    }
                }
+               else if(str.equals("END")){
+                   Serveur.arreter=true;
+               }
                else{
-                     System.out.println(str);
+                   //envoi du message à tous les clients et aux workers
+                     for(int i=0;i<Serveur.maxClients;i++){
+                          if(Serveur.pwClient[i]!=null)
+                            Serveur.pwClient[i].println(str);
+                     }
+                        for(int i=0;i<Serveur.maxWorkers;i++){
+                            if(Serveur.pwWorker[i]!=null)
+                                Serveur.pwWorker[i].println(str);
+                        }
                }
 
 
             }
-            //si on tape END
-            pw.println("END");
+
         }catch(IOException e){e.printStackTrace();}
-        Client.arreter=true;
     }
 }
 class EcouterObjets extends Thread{
@@ -232,22 +261,34 @@ class EcouterObjets extends Thread{
                 Socket soc = s.accept();
                 ObjectInputStream ois = new ObjectInputStream(soc.getInputStream());
                 Hachtable h = (Hachtable) ois.readObject();
-                for(int i=0;i<Serveur.numWorker;i++){
-                    if(Serveur.ipWorker[i].equals(soc.getInetAddress().getHostAddress())){
+                for(int i=0;i<Serveur.maxWorkers;i++){
+                    if(Objects.equals(Serveur.ipWorker[i], soc.getInetAddress().toString())){
                         Serveur.WorkersDisponibles[i]=true;
                     }
                 }
-                Serveur.LancerWorkerCalculPersistance();
                 Hashtable<BigInteger, Integer> persistanceA = h.getPersistanceA();
                 Hashtable<BigInteger, Integer> persistanceM = h.getPersistanceM();
 
-                this.oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Multiplicative\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
-                this.oos = new ObjectOutputStream(new FileOutputStream("D:\\L2_S4\\Info4B\\Persistance\\Persistance\\Additive\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
+
+                // Créez un objet File pour représenter le dossier
+                File folder = new File("Multiplicative");
+
+                // Vérifiez si le dossier existe déjà
+                if (!folder.exists()) {
+                    // Créez le dossier en appelant la méthode mkdir() de l'objet File
+                    folder.mkdir();
+                }
+                folder = new File("Additive");
+                if (!folder.exists()) {
+                    folder.mkdir();
+                }
+                this.oos = new ObjectOutputStream(new FileOutputStream("Multiplicative\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceM);
+                this.oos = new ObjectOutputStream(new FileOutputStream("Additive\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceA);
                 this.oos.flush();
                 this.oos.close();
             }
-        }catch (IOException | ClassNotFoundException | InterruptedException e) {throw new RuntimeException(e);}
+        }catch (IOException | ClassNotFoundException e) {throw new RuntimeException(e);}
     }
 }

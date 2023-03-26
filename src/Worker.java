@@ -9,6 +9,8 @@ public class Worker {
     static Hashtable<BigInteger, Integer> persistanceMultiplicative = new Hashtable<>();
     static BufferedReader sisr;
     static PrintWriter sisw;
+    static Socket socketObjets;
+    static ObjectOutputStream oos;
 
     public static void main(String[] args) throws Exception {
         arreter=false;
@@ -21,7 +23,11 @@ public class Worker {
         String str;
         while(!arreter) {
             str = sisr.readLine();
-            if(str.split(" ")[0].equals("persistance")) {
+            if(str.equals("END")) {
+                arreter=true;
+                sisw.println("END");
+            }
+            else if(str.split(" ")[0].equals("persistance")) {
                 BigInteger debut = new BigInteger(str.split(" ")[1]);
                 System.out.println("debut = " + debut + " fin = " + debut.add(new BigInteger("10000")));
                 for (BigInteger i = debut; i.compareTo(debut.add(new BigInteger("10000"))) < 0; i = i.add(BigInteger.ONE)) {
@@ -34,23 +40,25 @@ public class Worker {
                 persistanceMultiplicative.clear();
 
             }
-
-
+            else {
+                System.out.println("Serveur=>"+str);
+            }
         }
         sisr.close();
         sisw.close();
         socket.close();
+        socketObjets.close();
+        oos.close();
+        System.exit(0);
     }
 
     public static void envoyerPersistances(BigInteger debut, BigInteger fin) {
         try {
-            Socket socketObjets= new Socket("10.192.34.181", 10000);
+            socketObjets = new Socket("10.192.34.181",10000);
+            oos = new ObjectOutputStream(socketObjets.getOutputStream());
             Hachtable hm = new Hachtable(debut, fin,persistanceAdditive,persistanceMultiplicative);
-            ObjectOutputStream oos = new ObjectOutputStream(socketObjets.getOutputStream());
             oos.writeObject(hm);
             oos.flush();
-            oos.close();
-            socketObjets.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -111,9 +119,8 @@ class GererSaisieWorker extends Thread{
             while(!(str = entreeClavier.readLine()).equals("END") && !Worker.arreter){
                 pw.println(str);
             }
-            Worker.arreter=true;
             pw.println("END");
-            System.exit(0);
+            Worker.arreter=true;
         }catch(IOException e){e.printStackTrace();}
 
     }
@@ -131,4 +138,33 @@ class Tache extends Thread {
     }
 
 }
+class Hachtable implements Serializable {
+    private Hashtable<BigInteger, Integer> persistanceA;
+    private Hashtable<BigInteger, Integer> persistanceM;
+    private BigInteger debut;
+    private BigInteger fin;
+
+    public Hachtable(BigInteger debut,BigInteger fin,Hashtable<BigInteger, Integer> persistanceA, Hashtable<BigInteger, Integer> persistanceM) {
+        this.persistanceA = persistanceA;
+        this.persistanceM = persistanceM;
+        this.debut = debut;
+        this.fin = fin;
+
+    }
+
+    public Hashtable<BigInteger, Integer> getPersistanceA() {
+        return persistanceA;
+    }
+
+    public Hashtable<BigInteger, Integer> getPersistanceM() {
+        return persistanceM;
+    }
+    public BigInteger getDebut() {
+        return debut;
+    }
+    public BigInteger getFin() {
+        return fin;
+    }
+}
+
 
