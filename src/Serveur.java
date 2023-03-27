@@ -101,58 +101,52 @@ class ServerSocketHandler extends Thread{
         }catch(IOException e){e.printStackTrace();}
     }
 }
-class ConnexionClient extends Thread{
+class ConnexionClient extends Thread {
     private BufferedReader sisr;
     private PrintWriter sisw;
-    private  Socket soc;
+    private Socket soc;
 
-    public ConnexionClient(Socket s){
-        try{
+    public ConnexionClient(Socket s) {
+        try {
             this.soc = s;
-            sisr = new BufferedReader(new InputStreamReader(soc.getInputStream()));
-            sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(soc.getOutputStream())),true);
-            Serveur.pwClient[Serveur.numClient]=sisw;
-            Serveur.ipClient[Serveur.numClient]=soc.getInetAddress().toString();
-            System.out.println("Client "+ Serveur.ipClient[Serveur.numClient] +" connecté");
-            Serveur.numClient++;
-        }catch(IOException e){e.printStackTrace();}
-    }
-    public void run(){
-        try{
-            while(Serveur.numClient < Serveur.maxClients){
-                String str;
-                if((str=sisr.readLine()).equals("END")){
-                    //retrait du client de la liste en fonction de son adresse IP
-                    for(int i=0;i<Serveur.maxClients;i++){
-                        if(Serveur.ipClient[i].equals(soc.getInetAddress().getHostAddress())){
-                            Serveur.pwClient[i]=null;
-                            Serveur.ipClient[i]=null;
-                            Serveur.numClient--;
-                            System.out.println("Client "+soc.getInetAddress()+" déconnecté");
-                        }
-                    }
-                }
-                else if(str.equals("salut")){
-
-                    FileInputStream fileIn = new FileInputStream("D:\\L2_S4\\Info4B\\Persistance\\Additive\\80000-90000.ser");
-                    ObjectInputStream in = new ObjectInputStream(fileIn);
-                    Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
-                    in.close();
-                    fileIn.close();
-                    System.out.println("Deserialized Hashtable.");
-                    //afficher toutes les valeurs de la table de hachage de manière croissante
-                    for (BigInteger key : h.keySet()) {
-                        System.out.println("Key: " + key + " Value: " + h.get(key));
-                    }
-
-
-
-                }
-                else{
-                    System.out.println("Client "+soc.getInetAddress()+" : "+str);
+            sisr = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(s.getOutputStream())), true);
+            //on ajoute le client à un emplacement libre dans la liste
+            for (int i = 0; i < Serveur.maxClients; i++) {
+                if (Serveur.pwClient[i] == null) {
+                    Serveur.pwClient[i] = sisw;
+                    Serveur.ipClient[i] = s.getInetAddress().toString();
+                    Serveur.numClient++;
+                    System.out.println("Client " + Serveur.ipClient[i] + " connecté");
+                    break;
                 }
             }
-        }catch(IOException e){e.printStackTrace();} catch (ClassNotFoundException e) {
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void run() {
+        try {
+            String str;
+            while (Serveur.numClient < Serveur.maxClients) {
+                str = sisr.readLine();
+                if (str.equals("END")) {
+                    System.out.println("Client " + soc.getInetAddress() + " déconnecté");
+                    for (int i = 0; i < Serveur.maxClients; i++) {
+                        if (Objects.equals(Serveur.ipClient[i], soc.getInetAddress().toString())) {
+                            Serveur.pwClient[i] = null;
+                            Serveur.ipClient[i] = null;
+                            Serveur.numClient--;
+                            break;
+                        }
+                    }
+                } else {
+                    System.out.println("Client " + soc.getInetAddress() + " : " + str);
+                }
+
+            }
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -290,5 +284,17 @@ class EcouterObjets extends Thread{
                 this.oos.close();
             }
         }catch (IOException | ClassNotFoundException e) {throw new RuntimeException(e);}
+    }
+}
+
+//on crée une classe pour répondre aux requêtes des clients
+class Reponse implements Serializable{
+    Hashtable<BigInteger, Integer> reponse;
+
+    public Reponse(Hashtable<BigInteger, Integer> reponse) {
+        this.reponse = reponse;
+    }
+    public Hashtable<BigInteger, Integer> getReponse() {
+        return reponse;
     }
 }
