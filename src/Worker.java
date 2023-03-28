@@ -12,7 +12,7 @@ public class Worker {
     static Socket socketObjets;
     static ObjectOutputStream oos;
     static int coeurs = Runtime.getRuntime().availableProcessors();
-    static ProcCalcul thread_calc[];
+    static ProcCalcul[] thread_calc;
 
     public static void main(String[] args) throws Exception {
         arreter=false;
@@ -27,10 +27,9 @@ public class Worker {
 
         thread_calc = new ProcCalcul[coeurs];
         Tache t = new Tache();
-        boolean proc_fini = false;
         for(int i=0; i<coeurs; i++)
         {
-            thread_calc[i] = new ProcCalcul(t,i);
+            thread_calc[i] = new ProcCalcul(t);
         }
         for(int i=0; i<coeurs; i++)
         {
@@ -50,21 +49,13 @@ public class Worker {
             else if(str.split(" ")[0].equals("persistance")) {
                 BigInteger debut = new BigInteger(str.split(" ")[1]);
                 System.out.println("debut = " + debut + " fin = " + debut.add(new BigInteger("10000")));
-                boolean pret = true;
-                if(pret){
-                    pret = false;
                     t.LancerTache(debut);
-                    afficherHashmap(persistanceAdditive,debut);
-                    /*if(debut.compareTo(new BigInteger("20000")) == 0)
-                        Thread.sleep(100000);*/
+                    //afficherHashmap(persistanceAdditive,debut);
                     envoyerPersistances(debut, debut.add(new BigInteger("10000")));
                     //vider les hashmaps
                     persistanceAdditive.clear();
                     persistanceMultiplicative.clear();
                     t.reset();
-                    try{Thread.sleep(500);}catch(Exception e){}
-                    pret = true;
-                }
             }
             else {
                 System.out.println("Serveur=>"+str);
@@ -181,9 +172,7 @@ class Tache{
         this.end_calc = true;
     }
 
-    public boolean getStatut(){
-        return this.end_calc;
-    }
+
 
     public synchronized void LancerTache(BigInteger min)
     {
@@ -197,7 +186,9 @@ class Tache{
     {
         while(end_calc){
             //System.out.println("Thread à l'arrêt");
-            try{this.wait();}catch(Exception e){};
+            try{this.wait();}catch(Exception e){
+                e.printStackTrace();
+            }
         }
 
         return giveNumber();
@@ -225,28 +216,20 @@ class Tache{
 
 class ProcCalcul extends Thread{
 
-    private Tache t;
-    private int indice;
+    private final Tache t;
 
-    public ProcCalcul (Tache t, int i){
+    public ProcCalcul (Tache t){
         this.t = t;
-        this.indice = i;
     }
 
-    public int getIndice()
-    {
-        return this.indice;
-    }
 
     @Override
     public void run(){
         BigInteger nb;
         int res1, res2;
-        BigInteger fini = new BigInteger("-1");
         while(true)
         {
             nb = t.getNumber();
-            //System.out.println("Thread n° "+indice+" & chiffre = "+nb);
             res1 = Worker.persistanceMultiplicative(nb);
             res2 = Worker.persistanceAdditive(nb);
             Worker.ajouteMult(nb, res1);
@@ -255,10 +238,10 @@ class ProcCalcul extends Thread{
     }
 }
 class Hachtable implements Serializable {
-    private Hashtable<BigInteger, Integer> persistanceA;
-    private Hashtable<BigInteger, Integer> persistanceM;
-    private BigInteger debut;
-    private BigInteger fin;
+    private final Hashtable<BigInteger, Integer> persistanceA;
+    private final Hashtable<BigInteger, Integer> persistanceM;
+    private final BigInteger debut;
+    private final BigInteger fin;
 
     public Hachtable(BigInteger debut,BigInteger fin,Hashtable<BigInteger, Integer> persistanceA, Hashtable<BigInteger, Integer> persistanceM) {
         this.persistanceA = persistanceA;

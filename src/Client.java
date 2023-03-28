@@ -1,5 +1,4 @@
 import java.io.*;
-import java.math.BigInteger;
 import java.net.*;
 public class Client {
 
@@ -30,8 +29,8 @@ public class Client {
 }
 
 class GererSaisieClient extends Thread{
-    private BufferedReader entreeClavier;
-    private PrintWriter pw;
+    private final BufferedReader entreeClavier;
+    private final PrintWriter pw;
 
     public GererSaisieClient(PrintWriter pw){
         entreeClavier = new BufferedReader(new InputStreamReader(System.in));
@@ -39,11 +38,6 @@ class GererSaisieClient extends Thread{
     }
 
     public void run(){
-        String str;
-        BigInteger min = new BigInteger("0");
-        BigInteger max = new BigInteger("0");
-        String requete = "";
-        boolean saisieOK = true;
         try{
             System.out.println("Tapez END pour quitter");
             System.out.println("Tapez persistance pour lancer le calcul de la persistance");

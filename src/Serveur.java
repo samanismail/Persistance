@@ -1,8 +1,7 @@
 import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
-import java.util.Hashtable;
-import java.util.Objects;
+import java.util.*;
 
 public class Serveur {
     static final int maxClients=5;
@@ -56,15 +55,14 @@ public class Serveur {
     public static BigInteger getNombre(){
         return nombre;
     }
-    public static void MAJNombre(){
+    public static synchronized void  MAJNombre(){
         nombre=nombre.add(new BigInteger("10000"));
     }
-    public static synchronized void LancerWorkerCalculPersistance() throws InterruptedException {
+    public static void LancerWorkerCalculPersistance() throws InterruptedException {
         for(int i=0;i<maxWorkers;i++){
             if(WorkersDisponibles[i]){
                 pwWorker[i].println("persistance "+getNombre());
                 WorkersDisponibles[i]=false;
-                MAJNombre();
             }
         }
     }
@@ -130,39 +128,82 @@ class ConnexionClient extends Thread {
         try {
             String str;
             while (Serveur.numClient < Serveur.maxClients) {
-                str = sisr.readLine();
-                if (str.equals("END")) {
-                    System.out.println("Client " + soc.getInetAddress() + " déconnecté");
-                    for (int i = 0; i < Serveur.maxClients; i++) {
-                        if (Objects.equals(Serveur.ipClient[i], soc.getInetAddress().toString())) {
-                            Serveur.pwClient[i] = null;
-                            Serveur.ipClient[i] = null;
-                            Serveur.numClient--;
-                            break;
+                if(sisr.ready()) {
+                    str = sisr.readLine();
+                    if (str.equals("END")) {
+                        System.out.println("Client " + soc.getInetAddress() + " déconnecté");
+                        for (int i = 0; i < Serveur.maxClients; i++) {
+                            if (Objects.equals(Serveur.ipClient[i], soc.getInetAddress().toString())) {
+                                Serveur.pwClient[i] = null;
+                                Serveur.ipClient[i] = null;
+                                Serveur.numClient--;
+                                break;
+                            }
                         }
-                    }
-                } else if (str.equals("salut")) {
+                    } else if (str.split(" ").length==3 && str.split(" ")[0].equals("persistance") && str.split(" ")[1].equals("add"))// si le client demande une persistance
+                    {
+                        System.out.println("Calculons la persistance additive de " + str.split(" ")[2]);
+                        int resultat = calculPersistanceAdditive(str.split(" ")[2]);
+                        sisw.println("persistance additive de " + str.split(" ")[2] + " " + resultat);
 
-                    FileInputStream fileIn = new FileInputStream("Additive\\30000-40000.ser");
-                    ObjectInputStream in = new ObjectInputStream(fileIn);
-                    Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
-                    in.close();
-                    fileIn.close();
-                    System.out.println("Deserialized Hashtable.");
-                    //afficher toutes les valeurs de la hachtable
-                    for(BigInteger key = new BigInteger("30000"); key.compareTo(new BigInteger("40000")) < 0; key = key.add(BigInteger.ONE)) {
-                        System.out.println("key = " + key + " value = " + h.get(key));
                     }
-                } else{
+                    else if (str.split(" ").length==3 && str.split(" ")[0].equals("persistance") && str.split(" ")[1].equals("mul"))// si le client demande une persistance
+                    {
+                        int resultat = calculPersistanceMultiplicative(str.split(" ")[2]);
+                        sisw.println("persistance add " + str.split(" ")[2] + " " + resultat);
+
+                    }
+                    else
+                    {
                         System.out.println("Client " + soc.getInetAddress() + " : " + str);
                     }
+                }
 
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         }
+    }
+
+    private int calculPersistanceMultiplicative(String s) {
+        BigInteger nb = new BigInteger(s);
+        int count = 0;
+
+        while (nb.compareTo(BigInteger.TEN) >= 0) {
+            BigInteger product = BigInteger.ONE;
+
+            // Multiply all the digits of "nb"
+            while (nb.compareTo(BigInteger.ZERO) > 0) {
+                BigInteger[] divAndRem = nb.divideAndRemainder(BigInteger.TEN);
+                product = product.multiply(divAndRem[1]);
+                nb = divAndRem[0];
+            }
+
+            nb = product;
+            count++;
+        }
+
+        return count;
+    }
+
+    private int calculPersistanceAdditive(String s) {
+        BigInteger nb = new BigInteger(s);
+        int count = 0;
+
+        while (nb.compareTo(BigInteger.TEN) >= 0) {
+            int sum = 0;
+
+            // Add up all the digits of "nb"
+            while (nb.compareTo(BigInteger.ZERO) > 0) {
+                BigInteger[] divAndRem = nb.divideAndRemainder(BigInteger.TEN);
+                sum += divAndRem[1].intValue();
+                nb = divAndRem[0];
+            }
+
+            nb = BigInteger.valueOf(sum);
+            count++;
+        }
+        return count;
     }
 }
 class ConnexionWorker extends Thread{
@@ -264,32 +305,42 @@ class EcouterObjets extends Thread{
     }
     public void run(){
         try {
+            // Créez un objet File pour représenter le dossier
+            File folder = new File("Multiplicative");
 
-            while(true){
+            // Vérifiez si le dossier existe déjà
+            if (!folder.exists()) {
+                // Créez le dossier en appelant la méthode mkdir() de l'objet File
+                folder.mkdir();
+            }
+            folder = new File("Additive");
+            if (!folder.exists()) {
+                folder.mkdir();
+            }
+            // verifier si le dossier Infos existe
+            folder= new File("Infos");
+            if (!folder.exists()) {
+                folder.mkdir();
+            }
+            //verifier si le fichier d'index existe
+            folder = new File("Infos\\index.txt");
+            if (folder.exists()) {
+                folder.delete();
+            }
+
+            Index index = new Index();
+            while(!Serveur.arreter){
                 Socket soc = s.accept();
                 ObjectInputStream ois = new ObjectInputStream(soc.getInputStream());
                 Hachtable h = (Hachtable) ois.readObject();
-                for(int i=0;i<Serveur.maxWorkers;i++){
-                    if(Objects.equals(Serveur.ipWorker[i], soc.getInetAddress().toString())){
-                        Serveur.WorkersDisponibles[i]=true;
-                    }
-                }
+
+
                 Hashtable<BigInteger, Integer> persistanceA = h.getPersistanceA();
                 Hashtable<BigInteger, Integer> persistanceM = h.getPersistanceM();
+                //ajouter l'interval au fichier d'index sans écraser les données existantes
+                index.ajouterIndex(h.getDebut(),h.getFin());
 
 
-                // Créez un objet File pour représenter le dossier
-                File folder = new File("Multiplicative");
-
-                // Vérifiez si le dossier existe déjà
-                if (!folder.exists()) {
-                    // Créez le dossier en appelant la méthode mkdir() de l'objet File
-                    folder.mkdir();
-                }
-                folder = new File("Additive");
-                if (!folder.exists()) {
-                    folder.mkdir();
-                }
                 this.oos = new ObjectOutputStream(new FileOutputStream("Multiplicative\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceM);
                 this.oos.flush();
@@ -297,19 +348,44 @@ class EcouterObjets extends Thread{
                 this.oos.writeObject(persistanceA);
                 this.oos.flush();
                 this.oos.close();
+                soc.close();
+                Serveur.MAJNombre();
+                for(int i=0;i<Serveur.maxWorkers;i++){
+                    if(Objects.equals(Serveur.ipWorker[i], soc.getInetAddress().toString())){
+                        Serveur.WorkersDisponibles[i]=true;
+                    }
+                }
+
             }
+            index.fermer();
+
         }catch (IOException | ClassNotFoundException e) {throw new RuntimeException(e);}
+
     }
 }
+//création d'un fichier d'index  qui contient les intervalles de chaque fichier et le nom du fichier
+class Index {
+    private static final BufferedWriter writer;
 
-//on crée une classe pour répondre aux requêtes des clients
-class Reponse implements Serializable{
-    Hashtable<BigInteger, Integer> reponse;
+    static {
+        try {
+            writer = new BufferedWriter(new FileWriter("Infos\\index.txt", true));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-    public Reponse(Hashtable<BigInteger, Integer> reponse) {
-        this.reponse = reponse;
+
+
+    public void ajouterIndex(BigInteger debut, BigInteger fin) throws IOException {
+        writer.flush();
+        String ligne = debut + "-" + fin;
+        writer.write(ligne);
+        writer.newLine(); // passer à la ligne suivante
     }
-    public Hashtable<BigInteger, Integer> getReponse() {
-        return reponse;
+
+    public void fermer() throws IOException {
+        writer.close();
     }
+
 }
