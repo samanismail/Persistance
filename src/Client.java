@@ -47,8 +47,11 @@ class GererSaisieClient extends Thread{
         try{
             System.out.println("Tapez END pour quitter");
             System.out.println("Tapez persistance pour lancer le calcul de la persistance");
-            while(!(str=entreeClavier.readLine()).equals("END")){
-                if(str.equals("persistance"))
+            while(true){
+                String requette = entreeClavier.readLine();
+                pw.println(requette);
+            }
+               /* if(str.equals("persistance"))
                     requete = "persistance ";
                     System.out.println("Additive(a) ou Multiplicative (m) ?");
                     if((str=entreeClavier.readLine()).equals("a"))
@@ -76,9 +79,9 @@ class GererSaisieClient extends Thread{
                         saisieOK = true;
             }
             //si on tape END
-            pw.println("END");
-        }catch(IOException e){e.printStackTrace();}
-        Client.arreter=true;
-        System.exit(0);
+            pw.println("END");*/
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

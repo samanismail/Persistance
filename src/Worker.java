@@ -1,7 +1,7 @@
 import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
-import java.util.Hashtable;
+import java.util.*;
 
 public class Worker {
     static boolean arreter;
@@ -11,6 +11,8 @@ public class Worker {
     static PrintWriter sisw;
     static Socket socketObjets;
     static ObjectOutputStream oos;
+    static int coeurs = Runtime.getRuntime().availableProcessors();
+    static ProcCalcul thread_calc[];
 
     public static void main(String[] args) throws Exception {
         arreter=false;
@@ -21,6 +23,24 @@ public class Worker {
         GererSaisieWorker saisie=new GererSaisieWorker(sisw);
         saisie.start();
         String str;
+
+
+        thread_calc = new ProcCalcul[coeurs];
+        Tache t = new Tache();
+        boolean proc_fini = false;
+        for(int i=0; i<coeurs; i++)
+        {
+            thread_calc[i] = new ProcCalcul(t,i);
+        }
+        for(int i=0; i<coeurs; i++)
+        {
+            thread_calc[i].join();
+        }
+        for(int i=0; i<coeurs; i++)
+        {
+            thread_calc[i].start();
+        }
+
         while(!arreter) {
             str = sisr.readLine();
             if(str.equals("END")) {
@@ -30,15 +50,21 @@ public class Worker {
             else if(str.split(" ")[0].equals("persistance")) {
                 BigInteger debut = new BigInteger(str.split(" ")[1]);
                 System.out.println("debut = " + debut + " fin = " + debut.add(new BigInteger("10000")));
-                for (BigInteger i = debut; i.compareTo(debut.add(new BigInteger("10000"))) < 0; i = i.add(BigInteger.ONE)) {
-                    Tache t = new Tache(i);
-                    t.start();
+                boolean pret = true;
+                if(pret){
+                    pret = false;
+                    t.LancerTache(debut);
+                    afficherHashmap(persistanceAdditive,debut);
+                    /*if(debut.compareTo(new BigInteger("20000")) == 0)
+                        Thread.sleep(100000);*/
+                    envoyerPersistances(debut, debut.add(new BigInteger("10000")));
+                    //vider les hashmaps
+                    persistanceAdditive.clear();
+                    persistanceMultiplicative.clear();
+                    t.reset();
+                    try{Thread.sleep(500);}catch(Exception e){}
+                    pret = true;
                 }
-                envoyerPersistances(debut, debut.add(new BigInteger("10000")));
-                //vider les hashmaps
-                persistanceAdditive.clear();
-                persistanceMultiplicative.clear();
-
             }
             else {
                 System.out.println("Serveur=>"+str);
@@ -63,6 +89,13 @@ public class Worker {
             e.printStackTrace();
         }
     }
+
+    public static void afficherHashmap(Hashtable<BigInteger, Integer> hm, BigInteger debut) {
+        for(BigInteger key = debut; key.compareTo(debut.add(new BigInteger("10000"))) < 0; key = key.add(BigInteger.ONE)) {
+            System.out.println("key = " + key + " value = " + hm.get(key));
+        }
+    }
+
     public static int persistanceMultiplicative(BigInteger nb) {
         int count = 0;
 
@@ -102,6 +135,16 @@ public class Worker {
         return count;
     }
 
+    public static synchronized void ajouteAdd(BigInteger nb, int pers)
+    {
+        Worker.persistanceAdditive.put(nb, pers);
+
+    }
+
+    public static synchronized void ajouteMult(BigInteger nb, int pers)
+    {
+        Worker.persistanceMultiplicative.put(nb, pers); //System.out.println("Résultat écrit par Thread n°"+i);
+    }
 }
 
 class GererSaisieWorker extends Thread{
@@ -126,17 +169,90 @@ class GererSaisieWorker extends Thread{
     }
 }
 
-class Tache extends Thread {
-    private final BigInteger nombre;
+class Tache{
+    private BigInteger min;
+    private BigInteger max;
+    public boolean end_calc;
 
-    Tache(BigInteger nombre) {
-        this.nombre = nombre;
-    }
-    public void run() {
-        Worker.persistanceAdditive.put(nombre, Worker.persistanceAdditive(nombre));
-        Worker.persistanceMultiplicative.put(nombre, Worker.persistanceMultiplicative(nombre));
+    public Tache()
+    {
+        this.min = new BigInteger("0");
+        this.max = new BigInteger("-1");
+        this.end_calc = true;
     }
 
+    public boolean getStatut(){
+        return this.end_calc;
+    }
+
+    public synchronized void LancerTache(BigInteger min)
+    {
+        this.min = min;
+        this.max = min.add(new BigInteger("10000"));
+        this.end_calc = false;
+        notifyAll();
+    }
+
+    public synchronized BigInteger getNumber()
+    {
+        while(end_calc){
+            //System.out.println("Thread à l'arrêt");
+            try{this.wait();}catch(Exception e){};
+        }
+
+        return giveNumber();
+    }
+
+    public synchronized BigInteger giveNumber()
+    {
+        end_calc = !(this.min.compareTo(this.max) <= 0);
+        BigInteger res = this.min;
+        if(!end_calc){
+            this.min = this.min.add(BigInteger.ONE);
+            notifyAll();
+        }
+        //System.out.println("Nombre récupéré");
+        return res;
+    }
+
+    public void reset()
+    {
+        this.min = new BigInteger("0");
+        this.max = new BigInteger("-1");
+        end_calc = true;
+    }
+}
+
+class ProcCalcul extends Thread{
+
+    private Tache t;
+    private int indice;
+
+    public ProcCalcul (Tache t, int i){
+        this.t = t;
+        this.indice = i;
+    }
+
+    public int getIndice()
+    {
+        return this.indice;
+    }
+
+    @Override
+    public void run(){
+        BigInteger nb;
+        int res1, res2;
+        BigInteger fini = new BigInteger("-1");
+        while(true)
+        {
+            nb = t.getNumber();
+            //System.out.println("Thread n° "+indice+" & chiffre = "+nb);
+            res1 = Worker.persistanceMultiplicative(nb);
+            res2 = Worker.persistanceAdditive(nb);
+            Worker.ajouteMult(nb, res1);
+            Worker.ajouteAdd(nb, res2);
+        }
+    }
 }
 class Hachtable implements Serializable {
     private Hashtable<BigInteger, Integer> persistanceA;
@@ -166,5 +282,4 @@ class Hachtable implements Serializable {
         return fin;
     }
 }
-
 

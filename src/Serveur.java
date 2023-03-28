@@ -141,13 +141,27 @@ class ConnexionClient extends Thread {
                             break;
                         }
                     }
-                } else {
-                    System.out.println("Client " + soc.getInetAddress() + " : " + str);
-                }
+                } else if (str.equals("salut")) {
+
+                    FileInputStream fileIn = new FileInputStream("Additive\\30000-40000.ser");
+                    ObjectInputStream in = new ObjectInputStream(fileIn);
+                    Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
+                    in.close();
+                    fileIn.close();
+                    System.out.println("Deserialized Hashtable.");
+                    //afficher toutes les valeurs de la hachtable
+                    for(BigInteger key = new BigInteger("30000"); key.compareTo(new BigInteger("40000")) < 0; key = key.add(BigInteger.ONE)) {
+                        System.out.println("key = " + key + " value = " + h.get(key));
+                    }
+                } else{
+                        System.out.println("Client " + soc.getInetAddress() + " : " + str);
+                    }
 
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 }
@@ -278,6 +292,7 @@ class EcouterObjets extends Thread{
                 }
                 this.oos = new ObjectOutputStream(new FileOutputStream("Multiplicative\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceM);
+                this.oos.flush();
                 this.oos = new ObjectOutputStream(new FileOutputStream("Additive\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceA);
                 this.oos.flush();
