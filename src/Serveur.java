@@ -153,6 +153,15 @@ class ConnexionClient extends Thread {
                         sisw.println("persistance add " + str.split(" ")[2] + " " + resultat);
 
                     }
+                    else if(str.split(" ").length == 4 && str.split(" ")[0].equals("persistance") && str.split(" ")[1].equals("add") )
+                    {
+                       calculPersistanceAdditiveInterval(str.split(" ")[2],str.split(" ")[3]);
+                    }
+                    /*else if(str.split(" ").length == 4 && str.split(" ")[0].equals("persistance") && str.split(" ")[1].equals("mul") && str.split(" ")[2].equals("resultat"))
+                    {
+                        calculPersistanceMultiplicativeInterval(str.split(" ")[3],str.split(" ")[4]);
+                    }*/
+
                     else
                     {
                         System.out.println("Client " + soc.getInetAddress() + " : " + str);
@@ -160,10 +169,62 @@ class ConnexionClient extends Thread {
                 }
 
             }
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
+
+    private void calculPersistanceAdditiveInterval(String d, String f) throws IOException, ClassNotFoundException {
+        Hashtable<BigInteger,Integer> resultat = new Hashtable<>();
+        BigInteger debut = new BigInteger(d);
+        BigInteger fin = new BigInteger(f);
+        BigInteger difference = fin.subtract(debut).add(BigInteger.valueOf(1));
+        BigInteger i =   debut.divide(BigInteger.valueOf(10000)).multiply(BigInteger.valueOf(10000));
+
+        //lire les nombres de debut à fin dans le dossier Additive du disque
+        File repertoire = new File("Infos/index.txt");
+        BufferedReader br = new BufferedReader(new FileReader(repertoire));
+        String ligne;
+
+        while(i.compareTo(fin)<0){
+            ligne = br.readLine();
+            if(ligne!=null ){
+                {
+                    // si i est dans l'intervalle
+                    if(i.compareTo(fin)<0){
+                        FileInputStream fileIn = new FileInputStream("Additive/"+ligne+".ser");    //ouverture du fichier
+                        ObjectInputStream in = new ObjectInputStream(fileIn);
+                        Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) in.readObject();
+
+                        //ajouter les valeurs de h dans l'intervale dans resultat
+                        for (BigInteger key : h.keySet()) {
+                            System.out.println("Debut : "+debut+" Fin : "+fin);
+                            if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0){
+                                sisw.println("key : "+key+" value : "+h.get(key));
+                                difference = difference.subtract(BigInteger.valueOf(1));
+                            }
+                            if(difference.compareTo(BigInteger.valueOf(0))==0){
+                                break;
+                            }
+                        }
+
+
+                    }
+                    else {
+                        break;
+                    }
+
+                }
+            }
+            i = i.add(BigInteger.valueOf(1));
+        }
+
+
+
+
+
+    }
+
 
     private int calculPersistanceMultiplicative(String s) {
         BigInteger nb = new BigInteger(s);
@@ -377,7 +438,7 @@ class Index {
 
 
 
-    public void ajouterIndex(BigInteger debut, BigInteger fin) throws IOException {
+    public synchronized void ajouterIndex(BigInteger debut, BigInteger fin) throws IOException {
         writer.flush();
         String ligne = debut + "-" + fin;
         writer.write(ligne);
