@@ -169,7 +169,7 @@ class ConnexionClient extends Thread {
                                 case ("add"):
 
                                     //Bien vérifier si requete[2] == all sinon c'est une demande d'intervalle, requete [2] = debut et requete[3] = fin
-                                    if (Objects.equals(requete[1], "pi")) {/*PersistancesIntervalle(requete)*/
+                                    if (Objects.equals(requete[1], "pi")) {PersistancesIntervalle(requete);
                                         break;
                                     }
 
@@ -191,41 +191,6 @@ class ConnexionClient extends Thread {
                             }
                         }
                     }
-
-                   /* else if (str.split(" ").length == 3 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
-                    {
-                        System.out.println("persistance add " + str.split(" ")[2]);
-                        int resultat = calculPersistanceAdditiveNombre(str.split(" ")[2]);
-
-                        sisw.println("persistance additive de " + str.split(" ")[2] + " " + resultat);
-
-                    }
-                    //si le client demande une persistance multiplicative d'un nombre
-                    else if (str.split(" ").length==3 && str.split(" ")[0].equals("mul") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
-                    {
-                        System.out.println("persistance mul " + str.split(" ")[2]);
-                        int resultat = calculPersistanceMultiplicativeNombre(str.split(" ")[2]);
-                        System.out.println("persistance mul " + str.split(" ")[2] + " " + resultat);
-                        sisw.println("persistance mul " + str.split(" ")[2] + " " + resultat);
-
-
-                    }
-                    else if(str.split(" ").length == 4 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pi") )
-                    {
-                        Hashtable<BigInteger, Integer> resultat = calculPersistanceAdditiveInterval(str.split(" ")[2],str.split(" ")[3]);
-                        //on envoi le resultat au client
-                        for (Map.Entry<BigInteger, Integer> entry : resultat.entrySet()) {
-                            sisw.println("persistance additive de " + entry.getKey() + " " + entry.getValue());
-                        }
-                    }
-                    else if(str.split(" ").length == 4 && str.split(" ")[0].equals("mul") && str.split(" ")[1].equals("pi") )
-                    {
-                        Hashtable<BigInteger, Integer> resultat = calculPersistanceMultiplicativeInterval(str.split(" ")[2],str.split(" ")[3]);
-                        //on envoi le resultat au client
-                        for (Map.Entry<BigInteger, Integer> entry : resultat.entrySet()) {
-                            sisw.println("persistance additive de " + entry.getKey() + " " + entry.getValue());
-                        }
-                    }*/
                 }
 
             }
@@ -234,6 +199,42 @@ class ConnexionClient extends Thread {
         }
 
 
+    }
+
+    private void PersistancesIntervalle(String[] requete) throws IOException, ClassNotFoundException {
+
+        String fichier = "";
+        String type = "";
+        if(requete[0].equals("add")){
+            fichier = "Additive\\";
+            type = "additive";
+        }
+        else if(requete[0].equals("mul")){
+            fichier = "Multiplicative\\";
+            type = "multiplicative";
+        }
+        BigInteger debut = new BigInteger(requete[2]);//debut de l'intervalle
+        BigInteger fin = new BigInteger(requete[3]);//fin de l'intervalle
+        BigInteger i = debut.divide(Serveur.intervalle).multiply(Serveur.intervalle);
+        ArrayList<BigInteger> list = new ArrayList<>();
+        //on ajoute tous les multiples de 100000 dans une liste inférieurs à fin
+        while (i.compareTo(fin) <= 0) {
+            list.add(i);
+            i = i.add(Serveur.intervalle);
+        }
+        //on ouvre chque fichier dans la liste et on ajoute les résultats dans la table de hachage
+        for (BigInteger b : list) {
+            FileInputStream fis = new FileInputStream(fichier+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
+            for(BigInteger key : h.keySet())
+            {
+                if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0)
+                    sisw.println("persistance "+type+" de " + key + " " + h.get(key));
+            }
+            ois.close();
+            fis.close();
+        }
     }
 
     private void PersistanceNb(String type, String nombre) throws IOException, ClassNotFoundException {
@@ -281,97 +282,6 @@ class ConnexionClient extends Thread {
 
 
 
-    }
-
-    private Hashtable<BigInteger, Integer> calculPersistanceMultiplicativeInterval(String d, String f) throws IOException, ClassNotFoundException {
-        Hashtable<BigInteger, Integer> resultat = new Hashtable<>();
-        BigInteger debut = new BigInteger(d);//debut de l'intervalle
-        BigInteger fin = new BigInteger(f);//fin de l'intervalle
-        BigInteger i = debut.divide(Serveur.intervalle).multiply(Serveur.intervalle);
-        ArrayList<BigInteger> list = new ArrayList<>();
-        //on ajoute tous les multiples de 100000 dans une liste inférieurs à fin
-        while (i.compareTo(fin) <= 0) {
-            list.add(i);
-            i = i.add(Serveur.intervalle);
-        }
-        //on ouvre chque fichier dans la liste et on ajoute les résultats dans la table de hachage
-        for (BigInteger b : list) {
-            FileInputStream fis = new FileInputStream("Multiplicative\\" + b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
-            for(BigInteger key : h.keySet())
-            {
-                if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0)
-                    resultat.put(key,h.get(key));
-            }
-            ois.close();
-            fis.close();
-        }
-        return resultat;
-
-    }
-
-
-    public Hashtable<BigInteger, Integer> calculPersistanceAdditiveInterval(String d, String f) throws IOException, ClassNotFoundException {
-        Hashtable<BigInteger, Integer> resultat = new Hashtable<>();
-        BigInteger debut = new BigInteger(d);//debut de l'intervalle
-        BigInteger fin = new BigInteger(f);//fin de l'intervalle
-        BigInteger i = debut.divide(Serveur.intervalle).multiply(Serveur.intervalle);
-        ArrayList<BigInteger> list = new ArrayList<>();
-        //on ajoute tous les multiples de 100000 dans une liste inférieurs à fin
-        while (i.compareTo(fin) <= 0) {
-            list.add(i);
-            i = i.add(Serveur.intervalle);
-        }
-        //on ouvre chque fichier dans la liste et on ajoute les résultats dans la table de hachage
-        for (BigInteger b : list) {
-            FileInputStream fis = new FileInputStream("Additive"+b+"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
-            for(BigInteger key : h.keySet())
-            {
-                if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0)
-                    resultat.put(key,h.get(key));
-            }
-            ois.close();
-            fis.close();
-        }
-        return resultat;
-
-    }
-
-
-
-    private int calculPersistanceMultiplicativeNombre(String s) throws IOException, ClassNotFoundException {
-        //chercher le fichier qui contient le nombre
-        BigInteger nb = new BigInteger(s);
-        int resultat = 0;
-        BigInteger i = nb.divide(Serveur.intervalle).multiply(Serveur.intervalle);
-        //ouvrir le fichier qui contient le nombre
-        FileInputStream fis = new FileInputStream("Multiplicative\\"+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
-        ois.close();
-        fis.close();
-        //chercher le nombre dans le fichier
-        resultat = h.get(nb);
-        return resultat;
-    }
-
-    private int calculPersistanceAdditiveNombre(String s) throws IOException, ClassNotFoundException {
-        //chercher le fichier qui contient le nombre
-        BigInteger nb = new BigInteger(s);
-        int resultat = 0;
-        BigInteger i = nb.divide(Serveur.intervalle).multiply(Serveur.intervalle);
-        //ouvrir le fichier qui contient le nombre
-        FileInputStream fis = new FileInputStream("Additive\\"+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
-        ois.close();
-        fis.close();
-        //chercher le nombre dans le fichier
-        resultat = h.get(nb);
-        return resultat;
     }
 }
 class ConnexionWorker extends Thread{

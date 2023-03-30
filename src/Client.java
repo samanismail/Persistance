@@ -23,8 +23,8 @@ public class Client {
         while(!arreter) {
             if(sisr.ready()){
                 str = sisr.readLine();
-                System.out.println("Serveur=>"+str);
-                if(str.equals("END")) arreter = true; System.out.println("END");
+                System.out.println(str);
+                if(str.equals("END")) arreter = true;
             }
 
         }
