@@ -144,6 +144,7 @@ class GererSaisieClient extends Thread{
                     nb = entreeClavier.readLine();
                 }
                 choix2 = nb;
+                RequestServPersSpec(requete + " " + choix2);
                 break;
             case("pi"):
                 String min = ""; 
@@ -255,5 +256,6 @@ class GererSaisieClient extends Thread{
 
     public void RequestServPersSpec(String request){
         System.out.println("Resultat requete : " + request);
+        pw.println(request);
     }
 }

@@ -67,21 +67,6 @@ public class Worker{
         System.exit(0);
     }
 
-    public static void envoyerPersistances(BigInteger debut, BigInteger fin, Tache t) {
-
-        try {
-            socketObjets = new Socket(adresse,10000);
-            oos = new ObjectOutputStream(socketObjets.getOutputStream());
-            Hachtable hm = new Hachtable(debut, fin,t.getHashtableAdd(),t.getHashtableMult());
-            oos.writeObject(hm);
-            oos.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        t.afficherHashmap("mult", debut, fin);
-        t.reset();
-    }
-
 }
 
 class GererSaisieWorker extends Thread{
@@ -186,14 +171,11 @@ class Tache{
             else{
                 try {
                     this.reset();
-                    System.out.println("Fichier en cours d'envoi");
                     Worker.socketObjets = new Socket(Worker.adresse,10000);
                     Worker.oos = new ObjectOutputStream(Worker.socketObjets.getOutputStream());
                     Hachtable hm = new Hachtable(this.debut, this.fin,getHashtableAdd(),getHashtableMult());
                     Worker.oos.writeObject(hm);
                     Worker.oos.flush();
-                    afficherHashmap("mult", debut, this.fin);
-                    afficherHashmap("add", debut, this.fin);
                     this.persistanceMultiplicative.clear();
                     this.persistanceAdditive.clear();
                     System.out.println(debut + "-" + fin + " envoye" );
@@ -202,21 +184,6 @@ class Tache{
         }
     }
 
-    public void afficherHashmap(String type, BigInteger debut, BigInteger fin) {
-        if(type == "mult"){
-            for(BigInteger key = debut; key.compareTo(fin) < 0; key = key.add(BigInteger.ONE)) {
-                System.out.println("key = " + key + " value = " + persistanceMultiplicative.get(key));
-            }
-        }
-        else if (type == "add"){
-            for(BigInteger key = debut; key.compareTo(fin) < 0; key = key.add(BigInteger.ONE)) {
-                System.out.println("key = " + key + " value = " + persistanceAdditive.get(key));
-            }
-        }
-        else{
-            System.out.println("Mauvais type");
-        }
-    }
 
 
     public synchronized void ajouteAdd(BigInteger nb, int pers)
