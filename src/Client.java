@@ -6,7 +6,7 @@ public class Client {
     static boolean arreter=false;
 
     public static void main(String[] args) throws Exception {
-        String adresse = "0.0.0.0";
+        String adresse = "10.192.34.181";
         if(args.length > 0){
             adresse = args[0];
         }
@@ -233,6 +233,7 @@ class GererSaisieClient extends Thread{
                     nb = entreeClavier.readLine();
                 }
                 choix2 = nb;
+                RequestServPersSpec(requete + " " + choix2);
                 break;
             case("pi"):
                 String min = "";
@@ -259,12 +260,5 @@ class GererSaisieClient extends Thread{
     public void RequestServPersSpec(String request){
         System.out.println("Resultat requete : " + request);
         pw.println(request);
-        String rep="";
-        try{
-            while(rep == ""){
-                while( (rep = sisr.readLine()) != "finreponse")
-                    System.out.println(rep);
-            }
-        }catch(Exception e){e.printStackTrace();}
     }
 }

@@ -142,8 +142,9 @@ class ConnexionClient extends Thread {
         try {
             String str;
             while (Serveur.numClient < Serveur.maxClients) {
-                if(sisr.ready()) {
+                if (sisr.ready()) {
                     str = sisr.readLine();
+
                     if (str.equals("END")) {
 
                         for (int i = 0; i < Serveur.maxClients; i++) {
@@ -157,7 +158,41 @@ class ConnexionClient extends Thread {
                             }
                         }
                     }
-                    else if (str.split(" ").length == 3 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
+                    else {
+
+                        String[] requete = str.split(" ");
+                        //ajouter if pour les requettes qui dépassent la taille maxCalcule
+                        if(true){
+                            System.out.println("Client " + soc.getInetAddress().toString() + " : " + str);
+                            switch (requete[0]) {
+                                case ("mul"):
+                                case ("add"):
+
+                                    //Bien vérifier si requete[2] == all sinon c'est une demande d'intervalle, requete [2] = debut et requete[3] = fin
+                                    if (Objects.equals(requete[1], "pi")) {/*PersistancesIntervalle(requete)*/
+                                        break;
+                                    }
+
+                                case ("comp"):
+                                    switch (requete[1]) {
+                                        case ("pn"): PersistanceNb(requete[0],requete[2]);
+                                            break;
+                                        //Bien vérifier si requete[2] == all sinon c'est une demande d'intervalle, requete [2] = debut et requete[3] = fin
+                                        case ("pmax"): /*PersistanceMax(requete)*/
+                                            break;
+                                        case ("op"): /*OccurencePers(requete)*/
+                                            break;
+                                        case ("moy"): /*MoyPers(requete)*/
+                                            break;
+                                        case ("med"): /*MedPers(requete)*/
+                                            break;
+
+                                    }
+                            }
+                        }
+                    }
+
+                   /* else if (str.split(" ").length == 3 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
                     {
                         System.out.println("persistance add " + str.split(" ")[2]);
                         int resultat = calculPersistanceAdditiveNombre(str.split(" ")[2]);
@@ -190,15 +225,61 @@ class ConnexionClient extends Thread {
                         for (Map.Entry<BigInteger, Integer> entry : resultat.entrySet()) {
                             sisw.println("persistance additive de " + entry.getKey() + " " + entry.getValue());
                         }
-                    }
+                    }*/
                 }
 
             }
-        }catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
+
+
+    }
+
+    private void PersistanceNb(String type, String nombre) throws IOException, ClassNotFoundException {
+        //chercher le fichier qui contient le nombre
+        BigInteger nb = new BigInteger(nombre);
+        BigInteger i = nb.divide(Serveur.intervalle).multiply(Serveur.intervalle);
+
+        String fichier1 = "";
+        String fichier2 = "";
+        Hashtable<BigInteger, Integer> h=null;
+        if(type.equals("add")){
+            fichier1  ="Additive\\";
+            FileInputStream fis = new FileInputStream(fichier1+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            h = (Hashtable<BigInteger, Integer>) ois.readObject();
+            sisw.println("persistance additive de " + nb + " " + h.get(nb));
+        }
+        else if(type.equals("mul")){
+            fichier1 = "Multiplicative\\";
+            FileInputStream fis = new FileInputStream(fichier1+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            h = (Hashtable<BigInteger, Integer>) ois.readObject();
+            sisw.println("persistance multiplicative de " + nb + " " + h.get(nb));
+        }
+        else if(type.equals("comp")){
+            fichier1  ="Additive\\";
+            fichier2 = "Multiplicative\\";
+            FileInputStream fis = new FileInputStream(fichier1+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            Hashtable<BigInteger, Integer> h1 = (Hashtable<BigInteger, Integer>) ois.readObject();
+            fis = new FileInputStream(fichier2+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+            ois = new ObjectInputStream(fis);
+            Hashtable<BigInteger, Integer> h2 = (Hashtable<BigInteger, Integer>) ois.readObject();
+            if(h1.get(nb) > h2.get(nb)){
+                sisw.println(nombre + ": additive("+h1.get(nb)+") > multiplicative("+h2.get(nb)+")");
+            }
+            else if(h1.get(nb) < h2.get(nb)){
+
+                sisw.println(nombre + ": additive("+h1.get(nb)+") < multiplicative("+h2.get(nb)+")");
+            }
+            else{
+                sisw.println(nombre + ": additive("+h1.get(nb)+") = multiplicative("+h2.get(nb)+")");
+            }
+        }
+
+
 
     }
 
