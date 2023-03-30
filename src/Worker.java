@@ -153,7 +153,7 @@ class Tache{
         while(end_calc){
             try{this.wait();}catch(Exception e){e.printStackTrace();};
         }
-        end_calc = !(this.min.compareTo(this.max) <= 0);
+        end_calc = !(this.min.compareTo(this.max) < 0);
         BigInteger res = this.min;
         if(!end_calc){
             this.min = this.min.add(BigInteger.ONE);
@@ -171,7 +171,9 @@ class Tache{
             else{
                 try {
                     this.reset();
+                    afficherHashmap("mult", debut, fin);
                     Worker.socketObjets = new Socket(Worker.adresse,10000);
+                    System.out.println("Socket connecte !");
                     Worker.oos = new ObjectOutputStream(Worker.socketObjets.getOutputStream());
                     Hachtable hm = new Hachtable(this.debut, this.fin,getHashtableAdd(),getHashtableMult());
                     Worker.oos.writeObject(hm);
@@ -179,11 +181,26 @@ class Tache{
                     this.persistanceMultiplicative.clear();
                     this.persistanceAdditive.clear();
                     System.out.println(debut + "-" + fin + " envoye" );
+                    Worker.socketObjets.close();
                 } catch (IOException e) {e.printStackTrace();}
             }
         }
     }
-
+    public void afficherHashmap(String type, BigInteger debut, BigInteger fin) {
+        if(type == "mult"){
+            for(BigInteger key = debut; key.compareTo(fin.add(BigInteger.ONE)) <= 0; key = key.add(BigInteger.ONE)) {
+                System.out.println("key = " + key + " value = " + persistanceMultiplicative.get(key));
+            }
+        }
+        else if (type == "add"){
+            for(BigInteger key = debut; key.compareTo(fin.add(BigInteger.ONE)) <= 0; key = key.add(BigInteger.ONE)) {
+                System.out.println("key = " + key + " value = " + persistanceAdditive.get(key));
+            }
+        }
+        else{
+            System.out.println("Mauvais type");
+        }
+    }
 
 
     public synchronized void ajouteAdd(BigInteger nb, int pers)
@@ -289,7 +306,7 @@ class EnvoyerRes extends Thread{
     public void run(){
         while(true){
             t.EnvoyerPersistances();
-            try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
+            try{Thread.sleep(100);}catch(Exception e){e.printStackTrace();}
         }
     }
 }

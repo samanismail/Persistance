@@ -16,7 +16,7 @@ public class Client {
 
         PrintWriter sisw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())),true);
 
-        GererSaisieClient saisie=new GererSaisieClient(sisw);
+        GererSaisieClient saisie=new GererSaisieClient(sisw, sisr);
         saisie.start();
 
         String str;
@@ -26,7 +26,7 @@ public class Client {
                 System.out.println("Serveur=>"+str);
                 if(str.equals("END")) arreter = true; System.out.println("END");
             }
-            
+
         }
         sisr.close();
         sisw.close();
@@ -37,10 +37,12 @@ public class Client {
 class GererSaisieClient extends Thread{
     private BufferedReader entreeClavier;
     private PrintWriter pw;
+    private BufferedReader sisr;
 
-    public GererSaisieClient(PrintWriter pw){
+    public GererSaisieClient(PrintWriter pw, BufferedReader sisr){
         entreeClavier = new BufferedReader(new InputStreamReader(System.in));
         this.pw=pw;
+        this.sisr=sisr;
     }
 
     public void run(){
@@ -55,7 +57,7 @@ class GererSaisieClient extends Thread{
                         MenuPers(requete);break;
                     case("comp"):
                         MenuPersComp(requete);
-                    //case("s"){StatGenServ();}
+                        //case("s"){StatGenServ();}
                 }
             }
         } catch (IOException e) {
@@ -68,8 +70,8 @@ class GererSaisieClient extends Thread{
         System.out.println("Pour choisir une option dans un menu, veuillez taper la touche correspondante indiquee entre les parenthsese.");
         System.out.println("Veuillez choisir les donnees que vous souhaitez consulter : ");
         System.out.println("  - Persistance Multiplicative (mul)\n  - Persistance Additive (add)\n  - Comparaison des deux persistances (comp)\n  - Statistiques serveur (stat)");
-        
-        
+
+
         String requete = entreeClavier.readLine();
         while( !requete.equals("mul") && !requete.equals("add") && !requete.equals("comp") && !requete.equals("stat") && !requete.equals("END")){
             System.out.println("Requete invalide, veuillez reessayer");
@@ -85,7 +87,7 @@ class GererSaisieClient extends Thread{
         System.out.println("\nTapez RETURN pour revenir en arriere\n");
         System.out.println("Persistance "+type+" -- Que souhaitez-vous consulter ? : ");
         System.out.println("  - Persistance Maximale (pmax)\n  - Moyenne de la persistance (moy)\n  - Mediane de la persistance (med)\n  - Valeur de la persistance d'un nombre (pn)\n  - Valeur des persistances sur un intervalle (pi)\n  - Nombre d'occurences d'une persistance (op)\n");
-        
+
 
         String choix = entreeClavier.readLine();
         while( !choix.equals("RETURN") && !choix.equals("pmax") && !choix.equals("moy") && !choix.equals("med") && !choix.equals("pn") && !choix.equals("pi") && !choix.equals("op")){
@@ -99,7 +101,7 @@ class GererSaisieClient extends Thread{
             case("pmax"):
             case("op"):
             case("moy"):
-            case("med"): 
+            case("med"):
                 System.out.println("\nSouhaitez-vous le resultat sur un intervalle (int) ou l'ensemble des nombres calcules (all) ?");
                 choix2 = entreeClavier.readLine();
                 while( !choix2.equals("int") && !choix2.equals("all") ){
@@ -107,17 +109,17 @@ class GererSaisieClient extends Thread{
                     choix2 = entreeClavier.readLine();
                 }
                 if(choix2.equals("int")){
-                    String min = ""; 
+                    String min = "";
                     String max = "";
                     System.out.println("\nVeuillez choisir le debut de l'intervalle : ");
                     min = entreeClavier.readLine();
-                    while( !min.matches("\\d+") ){
+                    while( !min.matches("\\d+") && (new BigInteger(min).compareTo(new BigInteger("0")) < -1) ){
                         System.out.println("Requete invalide, veuillez reessayer");
                         min = entreeClavier.readLine();
                     }
                     System.out.println("\nVeuillez choisir la fin de l'intervalle : ");
                     max = entreeClavier.readLine();
-                    while( !max.matches("\\d+") ){
+                    while( !max.matches("\\d+")  && (new BigInteger(max).compareTo(new BigInteger("0")) < -1) ){
                         System.out.println("Requete invalide, veuillez reessayer");
                         max = entreeClavier.readLine();
                     }
@@ -127,7 +129,7 @@ class GererSaisieClient extends Thread{
                     String pers = "";
                     System.out.println("\nVeuillez choisir la valeur de la persistance : ");
                     pers = entreeClavier.readLine();
-                    while( !pers.matches("\\d+") ){
+                    while( !pers.matches("\\d+") && Integer.parseInt(pers) < 0){
                         System.out.println("Requete invalide, veuillez reessayer");
                         pers = entreeClavier.readLine();
                     }
@@ -139,7 +141,7 @@ class GererSaisieClient extends Thread{
                 System.out.println("\nVeuillez choisir le nombre");
                 String nb = "";
                 nb = entreeClavier.readLine();
-                while( !nb.matches("\\d+") ){
+                while( !nb.matches("\\d+")  && (new BigInteger(nb).compareTo(new BigInteger("0")) < -1) ){
                     System.out.println("Requete invalide, veuillez reessayer");
                     nb = entreeClavier.readLine();
                 }
@@ -147,17 +149,17 @@ class GererSaisieClient extends Thread{
                 RequestServPersSpec(requete + " " + choix2);
                 break;
             case("pi"):
-                String min = ""; 
+                String min = "";
                 String max = "";
                 System.out.println("\nVeuillez choisir le debut de l'intervalle : ");
                 min = entreeClavier.readLine();
-                while( !min.matches("\\d+") ){
+                while( !min.matches("\\d+") && (new BigInteger(min).compareTo(new BigInteger("0")) < -1)){
                     System.out.println("Requete invalide, veuillez reessayer");
                     min = entreeClavier.readLine();
                 }
                 System.out.println("\nVeuillez choisir la fin de l'intervalle : ");
                 max = entreeClavier.readLine();
-                while( !max.matches("\\d+") ){
+                while( !max.matches("\\d+") && (new BigInteger(max).compareTo(new BigInteger("0")) < -1)){
                     System.out.println("Requete invalide, veuillez reessayer");
                     max = entreeClavier.readLine();
                 }
@@ -165,14 +167,14 @@ class GererSaisieClient extends Thread{
                 RequestServPersSpec(requete + " " + choix2);
                 break;
             case("RETURN"):break;
-        }   
+        }
     }
 
     public void MenuPersComp(String requete) throws IOException{
         System.out.println("\nTapez RETURN pour revenir en arriere\n");
         System.out.println("Comparaisons des persistances -- Que souhaitez-vous consulter ? : ");
         System.out.println("  - Persistance Maximale (pmax)\n  - Moyenne de la persistance (moy)\n  - Mediane de la persistance (med)\n  - Persistance d'un nombre (pn)\n  - Nombre d'occurence d'une persistance (op)");
-        
+
 
         String choix = entreeClavier.readLine();
         while( !choix.equals("RETURN") && !choix.equals("pmax") && !choix.equals("moy") && !choix.equals("med") && !choix.equals("pn") && !choix.equals("op")){
@@ -186,7 +188,7 @@ class GererSaisieClient extends Thread{
             case("pmax"):
             case("op"):
             case("moy"):
-            case("med"): 
+            case("med"):
                 System.out.println("\nSouhaitez-vous le resultat sur un intervalle (int) ou l'ensemble des nombres calcules (all) ?");
                 choix2 = entreeClavier.readLine();
                 while( !choix2.equals("int") && !choix2.equals("all") ){
@@ -194,17 +196,17 @@ class GererSaisieClient extends Thread{
                     choix2 = entreeClavier.readLine();
                 }
                 if(choix2.equals("int")){
-                    String min = ""; 
+                    String min = "";
                     String max = "";
                     System.out.println("\nVeuillez choisir le debut de l'intervalle : ");
                     min = entreeClavier.readLine();
-                    while( !min.matches("\\d+") ){
+                    while( !min.matches("\\d+") && (new BigInteger(min).compareTo(new BigInteger("0")) < -1)){
                         System.out.println("Requete invalide, veuillez reessayer");
                         min = entreeClavier.readLine();
                     }
                     System.out.println("\nVeuillez choisir la fin de l'intervalle : ");
                     max = entreeClavier.readLine();
-                    while( !max.matches("\\d+") ){
+                    while( !max.matches("\\d+") && (new BigInteger(max).compareTo(new BigInteger("0")) < -1)){
                         System.out.println("Requete invalide, veuillez reessayer");
                         max = entreeClavier.readLine();
                     }
@@ -214,7 +216,7 @@ class GererSaisieClient extends Thread{
                     String pers = "";
                     System.out.println("\nVeuillez choisir la valeur de la persistance : ");
                     pers = entreeClavier.readLine();
-                    while( !pers.matches("\\d+") ){
+                    while( !pers.matches("\\d+") && Integer.parseInt(pers) < 0){
                         System.out.println("Requete invalide, veuillez reessayer");
                         pers = entreeClavier.readLine();
                     }
@@ -226,24 +228,24 @@ class GererSaisieClient extends Thread{
                 System.out.println("\nVeuillez choisir le nombre");
                 String nb = "";
                 nb = entreeClavier.readLine();
-                while( !nb.matches("\\d+") ){
+                while( !nb.matches("\\d+") && (new BigInteger(nb).compareTo(new BigInteger("0")) < -1)){
                     System.out.println("Requete invalide, veuillez reessayer");
                     nb = entreeClavier.readLine();
                 }
                 choix2 = nb;
                 break;
             case("pi"):
-                String min = ""; 
+                String min = "";
                 String max = "";
                 System.out.println("\nVeuillez choisir le debut de l'intervalle : ");
                 min = entreeClavier.readLine();
-                while( !min.matches("\\d+") ){
+                while( !min.matches("\\d+") && (new BigInteger(min).compareTo(new BigInteger("0")) < -1)){
                     System.out.println("Requete invalide, veuillez reessayer");
                     min = entreeClavier.readLine();
                 }
                 System.out.println("\nVeuillez choisir la fin de l'intervalle : ");
                 max = entreeClavier.readLine();
-                while( !max.matches("\\d+") ){
+                while( !max.matches("\\d+") && (new BigInteger(max).compareTo(new BigInteger("0")) < -1)){
                     System.out.println("Requete invalide, veuillez reessayer");
                     max = entreeClavier.readLine();
                 }
@@ -251,11 +253,18 @@ class GererSaisieClient extends Thread{
                 RequestServPersSpec(requete + " " + choix2);
                 break;
             case("RETURN"):break;
-        }   
+        }
     }
 
     public void RequestServPersSpec(String request){
         System.out.println("Resultat requete : " + request);
         pw.println(request);
+        String rep="";
+        try{
+            while(rep == ""){
+                while( (rep = sisr.readLine()) != "finreponse")
+                    System.out.println(rep);
+            }
+        }catch(Exception e){e.printStackTrace();}
     }
 }

@@ -144,7 +144,6 @@ class ConnexionClient extends Thread {
             while (Serveur.numClient < Serveur.maxClients) {
                 if(sisr.ready()) {
                     str = sisr.readLine();
-                    String[] requette = str.split(" ");
                     if (str.equals("END")) {
 
                         for (int i = 0; i < Serveur.maxClients; i++) {
@@ -158,18 +157,22 @@ class ConnexionClient extends Thread {
                             }
                         }
                     }
-                    else if (requette.length==3 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
+                    else if (str.split(" ").length == 3 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
                     {
-
+                        System.out.println("persistance add " + str.split(" ")[2]);
                         int resultat = calculPersistanceAdditiveNombre(str.split(" ")[2]);
+
                         sisw.println("persistance additive de " + str.split(" ")[2] + " " + resultat);
 
                     }
                     //si le client demande une persistance multiplicative d'un nombre
                     else if (str.split(" ").length==3 && str.split(" ")[0].equals("mul") && str.split(" ")[1].equals("pn"))// si le client demande une persistance
                     {
+                        System.out.println("persistance mul " + str.split(" ")[2]);
                         int resultat = calculPersistanceMultiplicativeNombre(str.split(" ")[2]);
+                        System.out.println("persistance mul " + str.split(" ")[2] + " " + resultat);
                         sisw.println("persistance mul " + str.split(" ")[2] + " " + resultat);
+
 
                     }
                     else if(str.split(" ").length == 4 && str.split(" ")[0].equals("add") && str.split(" ")[1].equals("pi") )
@@ -264,7 +267,7 @@ class ConnexionClient extends Thread {
         int resultat = 0;
         BigInteger i = nb.divide(Serveur.intervalle).multiply(Serveur.intervalle);
         //ouvrir le fichier qui contient le nombre
-        FileInputStream fis = new FileInputStream("Multiplicative\\" + i +"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+        FileInputStream fis = new FileInputStream("Multiplicative\\"+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
         ObjectInputStream ois = new ObjectInputStream(fis);
         Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
         ois.close();
@@ -280,7 +283,7 @@ class ConnexionClient extends Thread {
         int resultat = 0;
         BigInteger i = nb.divide(Serveur.intervalle).multiply(Serveur.intervalle);
         //ouvrir le fichier qui contient le nombre
-        FileInputStream fis = new FileInputStream("Additive"+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+        FileInputStream fis = new FileInputStream("Additive\\"+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
         ObjectInputStream ois = new ObjectInputStream(fis);
         Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
         ois.close();
