@@ -197,7 +197,7 @@ class ConnexionClient extends Thread {
                                                 break;
                                             case ("moy"): MoyPersistance(requete);
                                                 break;
-                                            case ("med"): /*MedPers(requete)*/
+                                            case ("med"): MedPersistance(requete);
                                                 break;
 
                                         }
@@ -215,12 +215,14 @@ class ConnexionClient extends Thread {
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
 
 
     }
 
-    private void PersistancesIntervalle(String[] requete) throws IOException, ClassNotFoundException {
+    private void PersistancesIntervalle(String[] requete) throws IOException, ClassNotFoundException, InterruptedException {
 
         String fichier = "";
         String type = "";
@@ -248,15 +250,132 @@ class ConnexionClient extends Thread {
             Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
             for(BigInteger key =b;key.compareTo(b.add(Serveur.intervalle).subtract(BigInteger.ONE))<=0;key=key.add(BigInteger.ONE))
             {
-                if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0)
+                if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0){
                     sisw.println(type+" ( "+key+" ) = "+h.get(key));
+                    Thread.sleep(1);
+                }
+
             }
             ois.close();
             fis.close();
         }
     }
 
-    private void PersistanceNb(String type, String nombre) throws IOException, ClassNotFoundException {
+    private BigInteger MedPersistance(String[] requete)  throws IOException, ClassNotFoundException {
+        System.out.println("Requete Persistance Med");
+        String fichier = "";
+        String type = "";
+        if(requete[0].equals("add")){
+            fichier = "Additive/";
+            type = "additive";
+        }
+        else if(requete[0].equals("mul")){
+            fichier = "Multiplicative/";
+            type = "multiplicative";
+        }
+        if(!type.equals("")){
+            BigInteger debut = new BigInteger("0");
+            BigInteger fin = Serveur.maxcalcule.subtract(BigInteger.ONE);
+            if(!requete[2].equals("all")){
+                debut = new BigInteger(requete[2]);
+                fin = new BigInteger(requete[3]);
+            }
+            BigInteger med = new BigInteger("0");
+            int[] ValPersistances = new int[12];
+            for(int i = 0; i<12;i++){
+                ValPersistances[i] = 0;
+            }
+            BigInteger i = debut.divide(Serveur.intervalle).multiply(Serveur.intervalle);
+            ArrayList<BigInteger> list = new ArrayList<>();
+            //on ajoute tous les multiples de 100000 dans une liste inférieurs à fin
+            while (i.compareTo(fin) <= 0) {
+                list.add(i);
+                i = i.add(Serveur.intervalle);
+            }
+            System.out.println(list);
+            for (BigInteger b : list) {
+                FileInputStream fis = new FileInputStream(fichier+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
+                /*if(list.indexOf(b) != (list.size() - 1)){
+                    for(BigInteger key = b; key.compareTo(b.add(Serveur.intervalle).subtract(BigInteger.ONE)) <= 0; key = key.add(BigInteger.ONE)){
+                        ValPersistances[h.get(key)] ++;
+                    }
+                }
+                else{
+                    for(BigInteger key = b; key.compareTo(fin) <= 0; key = key.add(BigInteger.ONE)){
+                        ValPersistances[h.get(key)] ++;
+                    }
+                }*/
+                for (BigInteger key : h.keySet()) {
+                    if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0){
+                        ValPersistances[h.get(key)] ++;
+                    }
+                }
+                ois.close();
+                fis.close();
+            }
+            BigInteger total = (fin.subtract(debut)).add(BigInteger.ONE); //Nombre total d'éléments calculés
+            BigInteger pariteTot = total.mod(new BigInteger("2")); //Parité du total
+            BigInteger indice = new BigInteger("0");
+            int nb_val = 0; //Nb d'élts parcourus dans la case d'indice indiceTab dans le tableau des valeurs de persistances
+            int indiceTab = 0; //Indice du tableau courant
+            //Si le total est impair, la médiane des persistances est la valeur au milieu
+            if( (pariteTot).compareTo(BigInteger.ZERO) != 0){
+                while( indice.compareTo(total.divide(new BigInteger("2")).add(BigInteger.ONE)) < 0){ //Tant que je ne suis pas à la valeur du milieu du nombre d'éléments
+                    //Si le nombre dépasse le nombre d'élements égal à la première valeur de persistance
+                    while(nb_val >= ValPersistances[indiceTab]){
+                        indiceTab ++;
+                        nb_val = 0;
+                    }
+                    nb_val ++; //J'incrémente le nombre d'éléments parcourus pour la première valeur de persistance
+                    indice = indice.add(BigInteger.ONE); //J'incrément aussi le nombre d'éléments parcourus dans le nombre total d'éléments calculés
+                }
+            }
+            else{
+                while( indice.compareTo( total.divide(new BigInteger("2"))) <= 0){ //Tant que je ne suis pas à la valeur du milieu du nombre d'éléments
+                    //Si le nombre dépasse le nombre d'élements égal à la première valeur de persistance
+                    while(nb_val >= ValPersistances[indiceTab]){
+                        indiceTab ++;
+                        nb_val = 0;
+                    }
+                    nb_val ++; //J'incrémente le nombre d'éléments parcourus pour la première valeur de persistance
+                    indice = indice.add(BigInteger.ONE); //J'incrément aussi le nombre d'éléments parcourus dans le nombre total d'éléments calculés
+                }
+            }
+            med = new BigInteger(indiceTab+""); //La médiane correspond à l'indice du tableau pour lequel la moitié du nombre d'éléments total calculés a été atteint
+            sisw.println("La médiane de la persistance "+type+" sur l'intervalle " + debut + "-" + fin+ " est "+med);
+            return med;
+        }
+        else if (requete[0].equals("comp")){
+            String[] requetecomp = new String[4];
+            for(int i = 0; i<requete.length;i++){
+                requetecomp[i] = requete [i];
+            }
+            if(requetecomp[2].equals("all")){
+                requetecomp[2] = "0";
+                requetecomp[3] = Serveur.maxcalcule.toString();
+            }
+            requetecomp[0] = "mul";
+            BigInteger PersistanceMoyMul = MedPersistance(requetecomp);
+            try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
+            requetecomp[0] = "add";
+            BigInteger PersistanceMoyAdd = MedPersistance(requetecomp);
+            try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
+            if(PersistanceMoyAdd.compareTo(PersistanceMoyMul) == 1){
+                sisw.println("La médiane de la persistance additive sur cette intervalle est superieure à celle de la persistance multiplicative sur l'intervalle " + requetecomp[2] + "-" + requetecomp[3]);
+            }
+            else if(PersistanceMoyMul.compareTo(PersistanceMoyAdd) == 1){
+                sisw.println("La médiane de la persistance multiplicative sur cette intervalle est superieure à celle de la persistance additive sur l'intervalle " + requetecomp[2] + "-" + requetecomp[3]);
+            }
+            else{
+                sisw.println("Les médianes des persistances additives et multiplicatives sont égales sur l'intervalle " + requetecomp[2] + "-" + requetecomp[3]);
+            }
+            return new BigInteger("1");
+        }
+        return new BigInteger("0");
+    }
+    private void PersistanceNb(String type, String nombre) throws IOException, ClassNotFoundException, InterruptedException {
         //chercher le fichier qui contient le nombre
         BigInteger nb = new BigInteger(nombre);
         BigInteger i = nb.divide(Serveur.intervalle).multiply(Serveur.intervalle);
@@ -287,6 +406,10 @@ class ConnexionClient extends Thread {
             fis = new FileInputStream(fichier2+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
             ois = new ObjectInputStream(fis);
             Hashtable<BigInteger, Integer> h2 = (Hashtable<BigInteger, Integer>) ois.readObject();
+            sisw.println("La persistance additive de " + nb + " est " + h1.get(nb));
+            Thread.sleep(50);
+            sisw.println("La persistance multiplicative de " + nb + " est " + h2.get(nb));
+            Thread.sleep(50);
             if(h1.get(nb) > h2.get(nb)){
                 sisw.println("La persistance additive de " + nb + " est plus grande que sa persistance multiplicative");
             }
@@ -392,9 +515,10 @@ class ConnexionClient extends Thread {
                             if(h.get(key) == Integer.parseInt(requette[3]))
                                 occurenceAdd = occurenceAdd.add(BigInteger.ONE);
                     }
-                    sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance "+type+ " est égale à " + requette[3]);
+
 
                 }
+                sisw.println("Il y a " + occurenceAdd + " nombres entre "+ debut + " et "+fin + " dont la persistance additive est égale à " + requette[3]);
                 for (BigInteger b : list) {
                     fis = new FileInputStream(fichier2+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
                     ois = new ObjectInputStream(fis);
@@ -405,9 +529,10 @@ class ConnexionClient extends Thread {
                             if(h.get(key) == Integer.parseInt(requette[3]))
                                 occurenceMul = occurenceMul.add(BigInteger.ONE);
                     }
-                    sisw.println("Occurence de la persistance multiplicative de"+requette[4]+"entre 0"+" et "+maxCalcule+" : "+occurenceMul);
+
 
                 }
+                sisw.println("Il y a " + occurenceMul + " nombres entre "+ debut + " et "+fin + " dont la persistance multiplicative est égale à " + requette[3]);
                 if(occurenceAdd.compareTo(occurenceMul) > 0)
                     sisw.println("La persistance additive est la plus fréquente");
                 else if(occurenceAdd.compareTo(occurenceMul) < 0)
@@ -437,7 +562,7 @@ class ConnexionClient extends Thread {
                     }
 
                 }
-                sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance additive est égale à " + requette[3]);
+                sisw.println("Occurence de la persistance additive de "+requette[4]+" entre "+debut+" et "+fin+" : "+occurenceAdd);
                 for (BigInteger b : list) {
                     fis = new FileInputStream(fichier2+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
                     ois = new ObjectInputStream(fis);
@@ -450,7 +575,7 @@ class ConnexionClient extends Thread {
                     }
 
                 }
-                sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance multiplicative est égale à " + requette[3]);
+                sisw.println("Occurence de la persistance multiplicative de "+requette[4]+" entre " +debut+" et "+fin+" : "+occurenceMul);
                 if(occurenceAdd.compareTo(occurenceMul) > 0)
                     sisw.println("La persistance additive est la plus fréquente");
                 else if(occurenceAdd.compareTo(occurenceMul) < 0)
@@ -559,7 +684,7 @@ class ConnexionClient extends Thread {
         return 0;
     }
 
-    private BigInteger MoyPersistance(String[] requete)  throws IOException, ClassNotFoundException {
+    private BigInteger MoyPersistance(String[] requete) throws IOException, ClassNotFoundException, InterruptedException {
         System.out.println("Requete Persistance Moy");
         String fichier = "";
         String type = "";
@@ -592,7 +717,6 @@ class ConnexionClient extends Thread {
                 FileInputStream fis = new FileInputStream(fichier+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
                 ObjectInputStream ois = new ObjectInputStream(fis);
                 Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
-                int val = 0;
                 if(list.indexOf(b) != (list.size() - 1)){
                     for(BigInteger key = b; key.compareTo(b.add(Serveur.intervalle).subtract(BigInteger.ONE)) <= 0; key = key.add(BigInteger.ONE)){
                         ValPersistances[h.get(key)] ++;
@@ -624,9 +748,10 @@ class ConnexionClient extends Thread {
             }
             requetecomp[0] = "mul";
             BigInteger PersistanceMoyMul = MoyPersistance(requetecomp);
+            Thread.sleep(200);
             requetecomp[0] = "add";
             BigInteger PersistanceMoyAdd = MoyPersistance(requetecomp);
-            try{Thread.sleep(200);}catch(Exception e){e.printStackTrace();}
+            Thread.sleep(200);
             if(PersistanceMoyAdd.compareTo(PersistanceMoyMul) == 1){
                 sisw.println("La persistance additive moyenne sur cette intervalle est superieure à la persistance mutliplicative moyenne");
             }
