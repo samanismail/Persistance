@@ -171,7 +171,6 @@ class Tache{
             else{
                 try {
                     this.reset();
-                    afficherHashmap("mult", debut, fin);
                     Worker.socketObjets = new Socket(Worker.adresse,10000);
                     System.out.println("Socket connecte !");
                     Worker.oos = new ObjectOutputStream(Worker.socketObjets.getOutputStream());
@@ -338,4 +337,3 @@ class Hachtable implements Serializable {
         return fin;
     }
 }
-

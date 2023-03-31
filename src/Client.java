@@ -23,10 +23,11 @@ public class Client {
         while(!arreter) {
             if(sisr.ready()){
                 str = sisr.readLine();
-                System.out.println(str);
-                if(str.equals("END")) arreter = true;
+                if(str.equals("END")){
+                    arreter = true;
+                    System.out.println(str);
+                }
             }
-
         }
         sisr.close();
         sisw.close();
@@ -49,6 +50,7 @@ class GererSaisieClient extends Thread{
         String requete = "";
         try{
             while(!Client.arreter){
+                System.out.println("Debut de boucle");
                 requete = MenuPrincipal();
                 switch(requete){
                     case("END") : System.out.println("Fin du programme, deconnexion du client"); pw.println("END") ; Client.arreter = true; break;
@@ -56,9 +58,11 @@ class GererSaisieClient extends Thread{
                     case("add"):
                         MenuPers(requete);break;
                     case("comp"):
-                        MenuPersComp(requete);
-                        //case("s"){StatGenServ();}
+                        MenuPersComp(requete);break;
+                    //case("s"){StatGenServ();}
                 }
+                requete = "";
+                System.out.println("Fin de boucle");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -257,8 +261,15 @@ class GererSaisieClient extends Thread{
         }
     }
 
-    public void RequestServPersSpec(String request){
-        System.out.println("Resultat requete : " + request);
+
+    //Modif fonctionnement +chgt main Client (voir dans le while)
+    public void RequestServPersSpec(String request) throws IOException{
+        System.out.println("Resultat requete : " + request+"\n");
         pw.println(request);
+        String rep ="";
+        while(! (rep = sisr.readLine()).equals("finreponse")){
+            System.out.println(rep);
+        }
+        try{Thread.sleep(500);}catch(Exception e){e.printStackTrace();}
     }
 }
