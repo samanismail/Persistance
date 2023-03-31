@@ -59,7 +59,7 @@ public class Serveur {
     }
     static synchronized void ecrireMaxCalculer() throws IOException {
         System.out.println("Max calcule : "+maxcalcule);
-        BufferedWriter bw = new BufferedWriter(new FileWriter("Infos\\maxCalcule.txt"));
+        BufferedWriter bw = new BufferedWriter(new FileWriter("Infos/maxCalcule.txt"));
         bw.write(maxcalcule.toString());
         bw.close();
     }
@@ -166,8 +166,13 @@ class ConnexionClient extends Thread {
                         }
                         else{
                             //Si la requête est sur un intervalle non-calculé
-                            if( !requete[2].equals("all") && ( (new BigInteger(requete[2])).compareTo(Serveur.maxcalcule.subtract(BigInteger.ONE)) == 1 || (new BigInteger(requete[3])).compareTo(Serveur.maxcalcule.subtract(BigInteger.ONE)) == 1) ){
-                                this.sisw.println("Impossible d'effectuer la requete, cet intervalle n'a pas encore ete calcule.");
+                            if( requete.length == 4 && !requete[2].equals("all") && ( (new BigInteger(requete[2])).compareTo(Serveur.maxcalcule.subtract(BigInteger.ONE)) == 1 || (new BigInteger(requete[3])).compareTo(Serveur.maxcalcule.subtract(BigInteger.ONE)) == 1) ){
+                                this.sisw.println("Impossible d'effectuer la requete, cet intervalle n'a pas encore ete calcule.  Nombre actuel max : "+Serveur.maxcalcule);
+                                try{Thread.sleep(500);}catch(Exception e){e.printStackTrace();}
+                                sisw.println("finreponse");
+                            }
+                            else if( requete.length == 3 && !requete[2].equals("all") && ( (new BigInteger(requete[2])).compareTo(Serveur.maxcalcule.subtract(BigInteger.ONE)) == 1) ){
+                                this.sisw.println("Impossible d'effectuer la requete, cet intervalle n'a pas encore ete calcule. Nombre actuel max : "+Serveur.maxcalcule);
                                 try{Thread.sleep(500);}catch(Exception e){e.printStackTrace();}
                                 sisw.println("finreponse");
                             }
@@ -220,11 +225,11 @@ class ConnexionClient extends Thread {
         String fichier = "";
         String type = "";
         if(requete[0].equals("add")){
-            fichier = "Additive\\";
+            fichier = "Additive/";
             type = "additive";
         }
         else if(requete[0].equals("mul")){
-            fichier = "Multiplicative\\";
+            fichier = "Multiplicative/";
             type = "multiplicative";
         }
         BigInteger debut = new BigInteger(requete[2]);//debut de l'intervalle
@@ -241,10 +246,10 @@ class ConnexionClient extends Thread {
             FileInputStream fis = new FileInputStream(fichier+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
             ObjectInputStream ois = new ObjectInputStream(fis);
             Hashtable<BigInteger, Integer> h = (Hashtable<BigInteger, Integer>) ois.readObject();
-            for(BigInteger key : h.keySet())
+            for(BigInteger key =b;key.compareTo(b.add(Serveur.intervalle).subtract(BigInteger.ONE))<=0;key=key.add(BigInteger.ONE))
             {
                 if(key.compareTo(debut)>=0 && key.compareTo(fin)<=0)
-                    sisw.println("persistance "+type+" de " + key + " " + h.get(key));
+                    sisw.println(type+" ( "+key+" ) = "+h.get(key));
             }
             ois.close();
             fis.close();
@@ -260,22 +265,22 @@ class ConnexionClient extends Thread {
         String fichier2 = "";
         Hashtable<BigInteger, Integer> h=null;
         if(type.equals("add")){
-            fichier1  ="Additive\\";
+            fichier1  ="Additive/";
             FileInputStream fis = new FileInputStream(fichier1+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
             ObjectInputStream ois = new ObjectInputStream(fis);
             h = (Hashtable<BigInteger, Integer>) ois.readObject();
-            sisw.println("persistance additive de " + nb + " " + h.get(nb));
+            sisw.println("La persistance additive de " + nb + " est " + h.get(nb));
         }
         else if(type.equals("mul")){
-            fichier1 = "Multiplicative\\";
+            fichier1 = "Multiplicative/";
             FileInputStream fis = new FileInputStream(fichier1+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
             ObjectInputStream ois = new ObjectInputStream(fis);
             h = (Hashtable<BigInteger, Integer>) ois.readObject();
-            sisw.println("persistance multiplicative de " + nb + " " + h.get(nb));
+            sisw.println("La persistance multiplicative de " + nb + " est " + h.get(nb));
         }
         else if(type.equals("comp")){
-            fichier1  ="Additive\\";
-            fichier2 = "Multiplicative\\";
+            fichier1  ="Additive/";
+            fichier2 = "Multiplicative/";
             FileInputStream fis = new FileInputStream(fichier1+i+"-"+i.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
             ObjectInputStream ois = new ObjectInputStream(fis);
             Hashtable<BigInteger, Integer> h1 = (Hashtable<BigInteger, Integer>) ois.readObject();
@@ -283,29 +288,29 @@ class ConnexionClient extends Thread {
             ois = new ObjectInputStream(fis);
             Hashtable<BigInteger, Integer> h2 = (Hashtable<BigInteger, Integer>) ois.readObject();
             if(h1.get(nb) > h2.get(nb)){
-                sisw.println(nombre + ": additive("+h1.get(nb)+") > multiplicative("+h2.get(nb)+")");
+                sisw.println("La persistance additive de " + nb + " est plus grande que sa persistance multiplicative");
             }
             else if(h1.get(nb) < h2.get(nb)){
 
-                sisw.println(nombre + ": additive("+h1.get(nb)+") < multiplicative("+h2.get(nb)+")");
+                sisw.println("La persistance multiplicative de " + nb + " est plus grande que sa persistance additive");
             }
             else{
-                sisw.println(nombre + ": additive("+h1.get(nb)+") = multiplicative("+h2.get(nb)+")");
+                sisw.println("La persistance additive de " + nb + " est égale à sa persistance multiplicative");
             }
         }
     }
 
     //Partie Saman --------------------------------------------------
     private void OccurencePers(String[] requette) throws IOException, ClassNotFoundException {
-        String fichier1 = "Additive\\";
-        String fichier2 = "Multiplicative\\";
+        String fichier1 = "Additive/";
+        String fichier2 = "Multiplicative/";
         String type = "";
         if(requette[0].equals("add")){
-            fichier1 = "Additive\\";
+            fichier1 = "Additive/";
             type = "additive";
         }
         else if(requette[0].equals("mul")){
-            fichier1 = "Multiplicative\\";
+            fichier1 = "Multiplicative/";
             type = "multiplicative";
         }
         BigInteger maxCalcule = new BigInteger(Serveur.maxcalcule.toString());
@@ -358,7 +363,13 @@ class ConnexionClient extends Thread {
                 ois.close();
                 fis.close();
             }
-            sisw.println("Nombre de persistances "+type+" de "+debut+" à "+fin+" de persistance "+requette[3]+" : "+occurence);
+           if(requette[2].equals("all")){
+               sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance "+type+ " est égale à " + requette[3]);
+           }
+           else{
+                sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance "+type+ " est égale à " + requette[4]);
+           }
+
         }
         else{
             if(requette[2].equals("all")) {
@@ -381,7 +392,7 @@ class ConnexionClient extends Thread {
                             if(h.get(key) == Integer.parseInt(requette[3]))
                                 occurenceAdd = occurenceAdd.add(BigInteger.ONE);
                     }
-                    sisw.println("Occurence de la persistance additive de"+requette[4]+"entre 0"+" et "+maxCalcule+" : "+occurenceAdd);
+                    sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance "+type+ " est égale à " + requette[3]);
 
                 }
                 for (BigInteger b : list) {
@@ -426,7 +437,7 @@ class ConnexionClient extends Thread {
                     }
 
                 }
-                sisw.println("Occurence de la persistance additive de "+requette[4]+" entre "+debut+" et "+fin+" : "+occurenceAdd);
+                sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance additive est égale à " + requette[3]);
                 for (BigInteger b : list) {
                     fis = new FileInputStream(fichier2+ b +"-"+b.add(Serveur.intervalle).subtract(BigInteger.ONE)+".ser");
                     ois = new ObjectInputStream(fis);
@@ -439,7 +450,7 @@ class ConnexionClient extends Thread {
                     }
 
                 }
-                sisw.println("Occurence de la persistance multiplicative de "+requette[4]+" entre " +debut+" et "+fin+" : "+occurenceMul);
+                sisw.println("Il y a " + occurence + " nombres entre "+ debut + " et "+fin + " dont la persistance multiplicative est égale à " + requette[3]);
                 if(occurenceAdd.compareTo(occurenceMul) > 0)
                     sisw.println("La persistance additive est la plus fréquente");
                 else if(occurenceAdd.compareTo(occurenceMul) < 0)
@@ -468,11 +479,11 @@ class ConnexionClient extends Thread {
         String fichier = "";
         String type = "";
         if(requete[0].equals("add")){
-            fichier = "Additive\\";
+            fichier = "Additive/";
             type = "additive";
         }
         else if(requete[0].equals("mul")){
-            fichier = "Multiplicative\\";
+            fichier = "Multiplicative/";
             type = "multiplicative";
         }
         if(!type.equals("")){
@@ -553,11 +564,11 @@ class ConnexionClient extends Thread {
         String fichier = "";
         String type = "";
         if(requete[0].equals("add")){
-            fichier = "Additive\\";
+            fichier = "Additive/";
             type = "additive";
         }
         else if(requete[0].equals("mul")){
-            fichier = "Multiplicative\\";
+            fichier = "Multiplicative/";
             type = "multiplicative";
         }
         if(!type.equals("")){
@@ -623,7 +634,7 @@ class ConnexionClient extends Thread {
                 sisw.println("La persistance multiplicative moyenne sur cette intervalle est superieure à la persistance additive moyenne");
             }
             else{
-                sisw.println("Les deux persistances sont egales");
+                sisw.println("Les persistances moyennes additives et multiplicatives sont égales");
             }
             return new BigInteger("1");
         }
@@ -768,14 +779,14 @@ class EcouterObjets extends Thread{
                 if (!folder.exists()) {
                     folder.mkdir();
                 }
-                folder = new File("Infos\\maxCalcule.txt");
+                folder = new File("Infos/maxCalcule.txt");
                 if (!folder.exists()) {
                     folder.createNewFile();
                 }
-                this.oos = new ObjectOutputStream(new FileOutputStream("Multiplicative\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
+                this.oos = new ObjectOutputStream(new FileOutputStream("Multiplicative/" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceM);
                 this.oos.flush();
-                this.oos = new ObjectOutputStream(new FileOutputStream("Additive\\" + h.getDebut() + "-" + h.getFin() + ".ser"));
+                this.oos = new ObjectOutputStream(new FileOutputStream("Additive/" + h.getDebut() + "-" + h.getFin() + ".ser"));
                 this.oos.writeObject(persistanceA);
                 this.oos.flush();
                 augmenterMaxCalcule();
