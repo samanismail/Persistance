@@ -17,19 +17,17 @@ import java.net.*;
 
 public class Worker
 {
-    static ObjectOutputStream oos;//Pour envoyer les objets
-    static Socket socketObjets;//pour la connexion avec le serveur
-    static int coeurs = Runtime.getRuntime().availableProcessors();//Nombre de coeurs du processeur
-    static String adresse;//Adresse du serveur
-    static boolean arreter;//Pour arrêter le programme
+
+
     public static void main(String[] args) throws Exception
     {
-
+        String adresse;//Adresse du serveur
         adresse = "10.192.34.181";//adresse du serveur (tests)
 
         if(args.length > 0){
             adresse = args[0];//adresse du serveur si on passe une adresse en parametre
         }
+        int coeurs = Runtime.getRuntime().availableProcessors();//Nombre de coeurs du processeur
         Socket socket = new Socket(adresse,8000);//Connexion au serveur
         System.out.println("SOCKET = " + socket);//Affichage de la connexion
         BufferedReader sisr = new BufferedReader(new InputStreamReader(socket.getInputStream()));//Pour lire les messages du serveur
@@ -38,7 +36,7 @@ public class Worker
         GererSaisieWorker saisie=new GererSaisieWorker(sisw);//thread qui permet de gerer la saisie du worker
         saisie.start();//lancement du thread
 
-        Tache t = new Tache(); /*Permet de gérer l'intervalle entre les différents threads du Worker*/
+        Tache t = new Tache(adresse,coeurs); /*Permet de gérer l'intervalle entre les différents threads du Worker*/
         
         
         ProcCalcul[] thread_calc;//Tableau de threads
@@ -59,16 +57,14 @@ public class Worker
         sendfile.start();//lancement du thread
 
         String str;//Pour stocker les messages du serveur
-        boolean arreter=false;//on initialise la variable d'arret a false
 
-        while(!arreter)//tant que le worker n'a pas reçu de message END du serveur
+        while(true)//tant que le worker n'a pas reçu de message END du serveur
         {
             if(sisr.ready())//si le serveur a envoyé un message
             {
                 str = sisr.readLine();//on stocke le message dans str
                 //On vérifie si le serveur ne s'est pas déconnecté
                 if(str.equals("END")) {//si le serveur a envoyé un message END
-                    arreter=true;//on met la variable d'arret a true
                     sisw.println("END");//on envoie un message END au serveur
                     try{Thread.sleep(500);}catch(Exception e){}//on attend 500ms
                     System.out.println("Le serveur a demandé la fin du programme.");//on affiche un message
@@ -84,12 +80,6 @@ public class Worker
                 }
             }
         }
-
-        oos.close();
-        sisr.close();
-        sisw.close();
-        socket.close();
-        System.exit(0);
     }
 
 }

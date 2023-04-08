@@ -27,7 +27,7 @@ class EnvoyerRes extends Thread
         while(true)
         {
             t.EnvoyerPersistances();// Appel de la méthode EnvoyerPersistances de la classe Tache
-            try{Thread.sleep(100);}catch(Exception e){e.printStackTrace();}
+            try{Thread.sleep(100);}catch(Exception e){}
         }
     }
 }

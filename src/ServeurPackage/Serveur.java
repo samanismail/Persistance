@@ -33,11 +33,10 @@ public class Serveur
     static PrintWriter[] pwWorker;//tableau des PrintWriter des workers
     static String[] ipWorker;//tableau des adresses IP des workers
 
-    static BigInteger nombre;//nombre à tester
+    private static BigInteger nombre;//nombre à tester
     static BigInteger maxcalcule;//dernier nombre testé
     static boolean[] WorkersDisponibles;//tableau des workers disponibles
     static boolean arreter;//variable pour arrêter le serveur
-    static EcouterObjets[] ecouterObjets;//tableau des threads EcouterObjets
     static ServerSocket serverSocketEcouteur;//socket d'écoute
     static BigInteger intervalle = new BigInteger("100000");//intervalle de recherche pour chaque worker
     static LocalDateTime tps;//temps de début du lancement du serveur
@@ -50,7 +49,7 @@ public class Serveur
         {
             //lire le fichier maxCalcule.txt
             BufferedReader br = new BufferedReader(new FileReader("Infos/maxCalcule.txt"));
-            maxcalcule = new BigInteger(br.readLine()).add(intervalle);//on ajoute l'intervalle pour que le premier worker ne teste pas le même nombre que le dernier worker
+            maxcalcule = new BigInteger(br.readLine());
             nombre = maxcalcule;//on initialise le nombre à tester au dernier nombre testé + l'intervalle
         }
         else//si le fichier maxCalcule.txt n'existe pas
@@ -69,7 +68,6 @@ public class Serveur
         pwWorker = new PrintWriter[maxWorkers];//on initialise le tableau des PrintWriter des workers
         WorkersDisponibles = new boolean[maxWorkers];//on initialise le tableau des workers disponibles
 
-        ecouterObjets = new EcouterObjets[maxWorkers];//on initialise le tableau des threads EcouterObjets
 
         tps = LocalDateTime.now();//on initialise le temps de début du lancement du serveur à maintenant
 
@@ -144,4 +142,3 @@ public class Serveur
         }
     }
 }
-

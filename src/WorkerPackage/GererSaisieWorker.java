@@ -35,8 +35,8 @@ class GererSaisieWorker extends Thread
                 pw.println(str);//on envoie la commande au serveur
             }
             pw.println("END");//on envoie le mot END au serveur si le worker a tapé END
-            WorkerPackage.Worker.arreter=true;//on arrête le worker
-        }catch(IOException e){e.printStackTrace();}
+            System.exit(0);//on ferme le worker
+        }catch(IOException e){}
 
     }
 }

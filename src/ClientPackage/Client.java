@@ -17,8 +17,6 @@ import java.net.*;
 public class Client
 {
 
-    static boolean arreter=false;//variable qui permet de savoir si le client doit s'arreter
-
     public static void main(String[] args) throws Exception
     {
         String adresse = "10.192.34.181";//adresse du serveur (tests)
@@ -36,17 +34,17 @@ public class Client
         saisie.start();//lancement du thread
 
         String str;
-        while(!arreter)//tant que le client n'a pas recu le message "END" du serveur
+        while(true)//tant que le client n'a pas recu le message "END" du serveur
         {
-            if(sisr.ready())//si le serveur a envoye un message
-            {
-                str = sisr.readLine();//on recupere le message
-                if(str.equals("END"))//si le message est "END"
+            if(sisr.ready()){
+                str=sisr.readLine();
+                if(str.equals("END"))
                 {
-                    arreter = true;//on arrete le client
-                    System.out.println(str);//on affiche le message
+                    break;
                 }
+                System.out.println(str);//on affiche le message
             }
+            
         }
         sisw.println("END");//dans le cas ou le client s'arrete, on envoie le message "END" au serveur
         sisr.close();//fermeture des flux

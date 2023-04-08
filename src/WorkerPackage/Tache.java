@@ -31,9 +31,13 @@ class Tache
     private Hashtable<BigInteger, Integer> persistanceMultiplicative;//Hashtable contenant les persistances multiplicative
     private boolean end_calc;//indique si les calculs sont terminés
     private boolean[] threads_finis;//indique si les threads de calcul sont terminés
+    private Socket socketObjets;//pour la connexion avec le serveur
+    private int coeurs;//nombre de coeurs du processeur
+    private String adresse;
 
-    public Tache()
-    {
+    public Tache(String adresse,int coeurs) throws IOException {
+        this.coeurs = coeurs;//on initialise le nombre de coeurs
+        this.adresse = adresse;
         this.min = new BigInteger("0");//on initialise la borne inférieure à 0
         this.debut = min;//on initialise la borne inférieure de l'intervalle pour chaque thread à 0
         this.max = new BigInteger("-1");//on initialise la borne supérieure à -1
@@ -41,9 +45,9 @@ class Tache
         this.persistanceAdditive = new Hashtable<>();//on initialise la Hashtable des persistances additive
         this.persistanceMultiplicative = new Hashtable<>();//on initialise la Hashtable des persistances multiplicative
         this.end_calc = true;//on initialise end_calc à true au lancement de la tâche
-        this.threads_finis = new boolean[WorkerPackage.Worker.coeurs];//on déclare le tableau des threads
+        this.threads_finis = new boolean[this.coeurs];//on déclare le tableau des threads
         //on initialise le tableau des threads à true
-        for( int i = 0; i < WorkerPackage.Worker.coeurs; i++)
+        for( int i = 0; i < this.coeurs; i++)
         {
             this.threads_finis[i] = true;
         }
@@ -99,7 +103,7 @@ class Tache
     {
         while(end_calc)//si les calculs sont terminés, le thread est mis en attente
         {
-            try{this.wait();}catch(Exception e){e.printStackTrace();};
+            try{this.wait();}catch(Exception e){};
         }
         //on met end_calc à false si le nombre à calculer est inférieur à la borne supérieure
         end_calc = !(this.min.compareTo(this.max) < 0);
@@ -123,9 +127,7 @@ class Tache
                     this.wait();//on met le thread en attente
                 }
                 catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
+                {}
             }
             else//si les threads sont terminés et que les calculs sont terminés
             {
@@ -133,19 +135,18 @@ class Tache
                 {
                     this.reset();//on réinitialise les attributs de la classe
                     //on se connecte au serveur
-                    WorkerPackage.Worker.socketObjets = new Socket(WorkerPackage.Worker.adresse, 10000);
-                    //on initialise les flux d'entrée et de sortie
-                    WorkerPackage.Worker.oos = new ObjectOutputStream(WorkerPackage.Worker.socketObjets.getOutputStream());
+                    this.socketObjets = new Socket(adresse, 10000);//on initialise la connexion avec le serveur (tests
+                    ObjectOutputStream oos= new ObjectOutputStream(socketObjets.getOutputStream());
                     Hachtable hm = new Hachtable(this.debut, this.fin, getHashtableAdd(), getHashtableMult());
                     //on envoie les résultats au serveur
-                    WorkerPackage.Worker.oos.writeObject(hm);
-                    WorkerPackage.Worker.oos.flush();//on vide le buffer
+                    oos.writeObject(hm);
+                    oos.flush();//on vide le buffer
                     //on réinitialise les Hashtables
                     this.persistanceMultiplicative.clear();
                     this.persistanceAdditive.clear();
                     //on affiche le résultat
                     System.out.println(debut + "-" + fin + " envoye");
-                    WorkerPackage.Worker.socketObjets.close();//on ferme la connexion
+                    oos.close();//on ferme la connexion
                 }
                 catch (IOException e)
                 {

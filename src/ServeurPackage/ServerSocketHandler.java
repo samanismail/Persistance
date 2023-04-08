@@ -18,7 +18,7 @@ import java.net.Socket;
 
 class ServerSocketHandler extends Thread
 {
-    int port;
+    private int port;
     private String type;
     private ServerSocket serverSocket;
 
@@ -48,7 +48,7 @@ class ServerSocketHandler extends Thread
                 }
 
             }
-        }catch(IOException e){e.printStackTrace();}
+        }catch(IOException e){}
     }
 }
 

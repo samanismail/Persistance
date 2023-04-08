@@ -17,7 +17,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.math.BigInteger;
 
-class GererSaisieClient extends Thread
+public class GererSaisieClient extends Thread
 {
     private final BufferedReader entreeClavier;//pour lire les requetes du client
     private final PrintWriter pw;//pour envoyer les requetes au serveur
@@ -35,25 +35,40 @@ class GererSaisieClient extends Thread
         String requete = "";//requete envoyee au serveur
         try
         {
-            while(!Client.arreter)//tant que le client n'a pas tape END
+            while(true)//tant que le client n'a pas tape END
             {
                 requete = MenuPrincipal();//on affiche le menu principal
                 switch (requete) {
-                    case ("END") ->
+                    case ("END") :
                     {
                         System.out.println("Fin du programme, deconnexion du client");
                         pw.println("END");
-                        Client.arreter = true;
+                        Thread.sleep(400);
+                        System.exit(0);
                     }
-                    case ("mul") ->MenuPers(requete);//on affiche le menu de persistance multiplicative
-                    case ("add") ->MenuPers(requete);//on affiche le menu de persistance additive
-                    case ("comp") ->MenuPersComp(requete);//on affiche le menu de comparaison
-                    case ("stat") -> StatGenServ();//on affiche les statistiques du serveur
+                    case ("mul") ://on affiche le menu de persistance multiplicative
+                    {
+                        MenuPers(requete);
+                        break;
+                    }
+                    case ("add") ://on affiche le menu de persistance additive
+                    {
+                        MenuPers(requete);
+                        break;
+                    }
+                    case ("comp") ://on affiche le menu de comparaison
+                    {
+                        MenuPersComp(requete);
+                        break;
+                    }
+                    case ("stat") ://on affiche les statistiques du serveur
+                    {
+                        StatGenServ();
+                        break;
+                    }
                 }
             }
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        } catch (IOException | InterruptedException e) {}
     }
 
     public String MenuPrincipal() throws IOException
@@ -309,6 +324,6 @@ class GererSaisieClient extends Thread
         {
             System.out.println(rep);//on affiche la reponse du serveur
         }
-        Thread.sleep(500);
+        Thread.sleep(200);
     }
 }

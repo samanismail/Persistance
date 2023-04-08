@@ -18,7 +18,7 @@ import java.io.*;
 
 class GererSaisieServeur extends Thread
 {
-    private final BufferedReader entreeClavier;//pour lire les commandes envoyées par le serveur
+    private BufferedReader entreeClavier;//pour lire les commandes envoyées par le serveur
 
     public GererSaisieServeur(){
         entreeClavier = new BufferedReader(new InputStreamReader(System.in));
@@ -68,6 +68,6 @@ class GererSaisieServeur extends Thread
 
             }
 
-        }catch(IOException e){e.printStackTrace();}
+        }catch(IOException e){}
     }
 }

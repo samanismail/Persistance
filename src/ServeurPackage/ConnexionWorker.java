@@ -19,8 +19,8 @@ import java.util.Objects;
 
 class ConnexionWorker extends Thread
 {
-    private final BufferedReader sisr;//pour lire les données envoyées par le client
-    private final Socket s;//pour envoyer des données au client
+    private BufferedReader sisr;//pour lire les données envoyées par le client
+    private Socket s;//pour envoyer des données au client
     private EcouterObjets eo;//pour écouter les objets envoyés par le client
 
     public ConnexionWorker(Socket s) throws IOException
@@ -42,7 +42,6 @@ class ConnexionWorker extends Thread
 
                 eo=new EcouterObjets();//on crée un nouveau thread pour écouter les objets envoyés par le worker
                 eo.start();//on démarre le thread
-                Serveur.ecouterObjets[i]=eo;//on ajoute le thread à la liste des threads
                 break;
             }
         }
@@ -72,7 +71,6 @@ class ConnexionWorker extends Thread
                     }
                 }
             }
-        }catch (IOException e) {
-            e.printStackTrace();}
+        }catch (IOException e) {}
     }
 }

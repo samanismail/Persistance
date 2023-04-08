@@ -28,7 +28,6 @@ import java.util.Objects;
 class EcouterObjets extends Thread
 {
 
-    ObjectOutputStream oos;//Création d'un objet ObjectOutputStream pour créer un fichier sérialisé
     private Socket s;//Création d'un objet Socket pour pouvoir récupérer l'adresse IP du Worker qui a envoyé l'objet Hachtable
 
 
@@ -87,13 +86,14 @@ class EcouterObjets extends Thread
                     folder.createNewFile();//On crée le fichier maxCalcule.txt
                 }
                 //On crée un fichier sérialisé pour la persistance multiplicative
-                this.oos = new ObjectOutputStream(new FileOutputStream("Multiplicative/" + h.getDebut() + "-" + h.getFin() + ".ser"));
-                this.oos.writeObject(persistanceM);//On écrit la persistance multiplicative dans le fichier sérialisé
-                this.oos.flush();//On vide le tampon
+                //Création d'un objet ObjectOutputStream pour créer un fichier sérialisé
+                ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("Multiplicative/" + h.getDebut() + "-" + h.getFin() + ".ser"));
+                oos.writeObject(persistanceM);//On écrit la persistance multiplicative dans le fichier sérialisé
+                oos.flush();//On vide le tampon
                 //On crée un fichier sérialisé pour la persistance additive
-                this.oos = new ObjectOutputStream(new FileOutputStream("Additive/" + h.getDebut() + "-" + h.getFin() + ".ser"));
-                this.oos.writeObject(persistanceA);//On écrit la persistance additive dans le fichier sérialisé
-                this.oos.flush();//On vide le tampon
+                oos = new ObjectOutputStream(new FileOutputStream("Additive/" + h.getDebut() + "-" + h.getFin() + ".ser"));
+                oos.writeObject(persistanceA);//On écrit la persistance additive dans le fichier sérialisé
+                oos.flush();//On vide le tampon
                 augmenterMaxCalcule();//On augmente le nombre maximum qui a été calculé jusqu'à présent
                 Serveur.ecrireMaxCalculer();//On met à jour le fichier maxCalcule.txt
             }

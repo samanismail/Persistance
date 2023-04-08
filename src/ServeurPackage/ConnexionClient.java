@@ -51,9 +51,7 @@ class ConnexionClient extends Thread
             }
         }
         catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        {}
     }
 
     //Méthode run du thread qui gère la connexion du client
@@ -126,17 +124,41 @@ class ConnexionClient extends Thread
                                     case ("comp")://Si le premier mot est "comp", on regarde le deuxième mot
                                         switch (requete[1]) //On regarde le deuxième mot de la requête
                                         {
-                                            case ("pn") -> PersistanceNb(requete[0], requete[2]);//Si le deuxième mot est "pn", on appelle la méthode PersistanceNb
-                                            case ("pmax") -> PersistanceMax(requete);//Si le deuxième mot est "pmax", on appelle la méthode PersistanceMax
-                                            case ("op") -> OccurencePers(requete);//Si le deuxième mot est "op", on appelle la méthode OccurencePers
-                                            case ("moy") -> MoyPersistance(requete);//Si le deuxième mot est "moy", on appelle la méthode MoyPersistance
-                                            case ("med") -> MedPersistance(requete);//Si le deuxième mot est "med", on appelle la méthode MedPersistance
+                                            case ("pn"): //Si le deuxième mot est "pn", on appelle la méthode PersistanceNb
+                                            {
+                                                PersistanceNb(requete[0], requete[2]);
+                                                break;
+                                            }
+                                            case ("pmax") ://Si le deuxième mot est "pmax", on appelle la méthode PersistanceMax
+                                            {
+                                                PersistanceMax(requete);
+                                                break;
+                                            }
+
+                                            case ("op")://Si le deuxième mot est "op", on appelle la méthode OccurencePers
+                                            {
+                                                OccurencePers(requete);
+                                                break;
+                                            }
+                                            case ("moy")://Si le deuxième mot est "moy", on appelle la méthode MoyPersistance
+                                            {
+                                                MoyPersistance(requete);
+                                                break;
+                                            }
+                                            case ("med") :
+                                            {
+                                                MedPersistance(requete);//Si le deuxième mot est "med", on appelle la méthode MedPersistance
+                                                break;
+                                            }
                                         }
                                         break;
                                     case("stat")://Si le premier mot est "stat", on appelle la méthode AfficherStatServ
                                         AfficherStatServ();
+                                        break;
                                 }
+                                if(!requete[0].equals("stat")){
                                 Thread.sleep(500);
+                                } 
                                 sisw.println("finreponse");//On envoie "finreponse" pour indiquer au client que la réponse est terminée dans tous les cas quand la requête est correcte
                             }
                         }
@@ -145,9 +167,7 @@ class ConnexionClient extends Thread
             }
         }
         catch (IOException | InterruptedException | ClassNotFoundException e)
-        {
-            e.printStackTrace();
-        }
+        {}
 
 
     }
@@ -481,7 +501,7 @@ class ConnexionClient extends Thread
     }
 
     //Méthode qui calcule le nombre d'occurence d'un nombre
-    private void OccurencePers(String[] requette) throws IOException, ClassNotFoundException
+    private void OccurencePers(String[] requette) throws IOException, ClassNotFoundException, InterruptedException
     {
         String fichier1 = "Additive/";//on définit le chemin du fichier
         String fichier2 = "Multiplicative/";//on définit le chemin du fichier
@@ -611,6 +631,7 @@ class ConnexionClient extends Thread
                     }
                 }
                 sisw.println("Il y a " + occurenceAdd + " nombres entre "+ debut + " et "+fin + " dont la persistance additive est égale à " + requette[3]);//on envoie le résultat au client
+                Thread.sleep(50);
 
                 //on parcourt la liste des fichiers à lire pour la persistance multiplicative
                 for (BigInteger b : list)
@@ -631,6 +652,7 @@ class ConnexionClient extends Thread
                     }
                 }
                 sisw.println("Il y a " + occurenceMul + " nombres entre "+ debut + " et "+fin + " dont la persistance multiplicative est égale à " + requette[3]);//on envoie le résultat au client
+                Thread.sleep(50);
 
                 //on compare les deux persistances pour savoir laquelle est la plus fréquente
                 if(occurenceAdd.compareTo(occurenceMul) > 0)
@@ -647,6 +669,7 @@ class ConnexionClient extends Thread
                 {
                     sisw.println("Les persistance additive et multiplicative sont égales en fréquence");
                 }
+                Thread.sleep(50);
             }
             else//si on veut calculer un intervalle
             {
@@ -682,7 +705,7 @@ class ConnexionClient extends Thread
                     }
                 }
                 sisw.println("Occurence de la persistance additive de "+requette[4]+" entre "+debut+" et "+fin+" : "+occurenceAdd);//on envoie le résultat au client
-
+                Thread.sleep(50);
                 //on parcourt la liste des fichiers à lire pour la persistance multiplicative
                 for (BigInteger b : list)
                 {
@@ -701,6 +724,7 @@ class ConnexionClient extends Thread
                     }
                 }
                 sisw.println("Occurence de la persistance multiplicative de "+requette[4]+" entre " +debut+" et "+fin+" : "+occurenceMul);//on envoie le résultat au client
+                Thread.sleep(50);
 
                 //on compare les deux persistances pour savoir laquelle est la plus fréquente
                 if(occurenceAdd.compareTo(occurenceMul) > 0)
@@ -717,17 +741,10 @@ class ConnexionClient extends Thread
                 {
                     sisw.println("Les persistance additive et multiplicative sont égales en fréquence");
                 }
+                Thread.sleep(50);
+            }
 
-            }
-            //on ferme les flux d'entrée et de sortie et les fichiers s'ils sont ouverts
-            if(ois != null)
-            {
-                ois.close();
-            }
-            if(fis != null)
-            {
-                fis.close();
-            }
+
         }
 
 
@@ -978,6 +995,7 @@ class ConnexionClient extends Thread
         //on crée une chaine de caractère pour stocker la durée entre l'heure de lancement et l'heure actuelle
         str = "Le serveur est lancé depuis : "+ duree.toHours() +" heures, "+ duree.toMinutes() +" minutes et "+ duree.toSeconds()+ " secondes ( Heure de lancement : "+t1.getHour()+":"+t1.getMinute()+":"+t1.getSecond()+" "+t1.getDayOfMonth()+"/"+t1.getMonthValue()+"/"+t1.getYear()+" ).\n";
         sisw.println(str);//on envoie la chaine de caractère au client
-        Thread.sleep(20);//on attend 20ms
+        Thread.sleep(20);//On attend 20ms
+        sisw.println("");
     }
 }
